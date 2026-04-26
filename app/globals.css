@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* ============================================================
    DESIGN SYSTEM — Vocabulary Web App
@@ -7,96 +7,164 @@
 
 @theme {
   /* --- PRIMARY: Crimson Red #DC143C --- */
-  --color-primary:     #DC143C;
-  --color-primary-t0:  #000000;
+  --color-primary: #dc143c;
+  --color-primary-t0: #000000;
   --color-primary-t10: #170206;
-  --color-primary-t20: #38050F;
-  --color-primary-t30: #670A1C;
-  --color-primary-t40: #950E29;
-  --color-primary-t50: #BB1133;
-  --color-primary-t60: #DC143C;
-  --color-primary-t70: #ED3B5F;
-  --color-primary-t80: #F37C94;
-  --color-primary-t90: #F9B9C6;
-  --color-primary-t95: #FCDEE4;
-  --color-primary-t100: #FFFFFF;
+  --color-primary-t20: #38050f;
+  --color-primary-t30: #670a1c;
+  --color-primary-t40: #950e29;
+  --color-primary-t50: #bb1133;
+  --color-primary-t60: #dc143c;
+  --color-primary-t70: #ed3b5f;
+  --color-primary-t80: #f37c94;
+  --color-primary-t90: #f9b9c6;
+  --color-primary-t95: #fcdee4;
+  --color-primary-t100: #ffffff;
 
   /* --- SECONDARY: Warm Amber #DD8C12 --- */
-  --color-secondary:     #DD8C12;
-  --color-secondary-t0:  #000000;
-  --color-secondary-t10: #180F02;
+  --color-secondary: #dd8c12;
+  --color-secondary-t0: #000000;
+  --color-secondary-t10: #180f02;
   --color-secondary-t20: #392405;
   --color-secondary-t30: #684208;
-  --color-secondary-t40: #97600C;
-  --color-secondary-t50: #BD770F;
-  --color-secondary-t60: #DD8C12;
-  --color-secondary-t70: #EFA439;
-  --color-secondary-t80: #F4C37B;
-  --color-secondary-t90: #F8DFB8;
-  --color-secondary-t95: #FCF0DE;
-  --color-secondary-t100: #FFFFFF;
+  --color-secondary-t40: #97600c;
+  --color-secondary-t50: #bd770f;
+  --color-secondary-t60: #dd8c12;
+  --color-secondary-t70: #efa439;
+  --color-secondary-t80: #f4c37b;
+  --color-secondary-t90: #f8dfb8;
+  --color-secondary-t95: #fcf0de;
+  --color-secondary-t100: #ffffff;
 
   /* --- TERTIARY: Cool Teal-Blue #2481A8 --- */
-  --color-tertiary:     #2481A8;
-  --color-tertiary-t0:  #000000;
+  --color-tertiary: #2481a8;
+  --color-tertiary-t0: #000000;
   --color-tertiary-t10: #051015;
-  --color-tertiary-t20: #0B2733;
-  --color-tertiary-t30: #14475D;
-  --color-tertiary-t40: #1D6787;
-  --color-tertiary-t50: #2481A8;
-  --color-tertiary-t60: #2DA1D3;
-  --color-tertiary-t70: #57B4DB;
-  --color-tertiary-t80: #89C9E6;
-  --color-tertiary-t90: #C0E3F2;
-  --color-tertiary-t95: #E2F2FB;
-  --color-tertiary-t100: #FFFFFF;
+  --color-tertiary-t20: #0b2733;
+  --color-tertiary-t30: #14475d;
+  --color-tertiary-t40: #1d6787;
+  --color-tertiary-t50: #2481a8;
+  --color-tertiary-t60: #2da1d3;
+  --color-tertiary-t70: #57b4db;
+  --color-tertiary-t80: #89c9e6;
+  --color-tertiary-t90: #c0e3f2;
+  --color-tertiary-t95: #e2f2fb;
+  --color-tertiary-t100: #ffffff;
 
   /* --- NEUTRAL: Warm Gray (crimson-tinted) #F4F1F2 --- */
-  --color-neutral:     #F4F1F2;
-  --color-neutral-t0:  #000000;
-  --color-neutral-t10: #1F0A0E;
+  --color-neutral: #f4f1f2;
+  --color-neutral-t0: #000000;
+  --color-neutral-t10: #1f0a0e;
   --color-neutral-t20: #312024;
-  --color-neutral-t30: #46393C;
+  --color-neutral-t30: #46393c;
   --color-neutral-t40: #625054;
-  --color-neutral-t50: #7E676C;
-  --color-neutral-t60: #9A8488;
-  --color-neutral-t70: #B3A3A6;
-  --color-neutral-t80: #CDC1C4;
-  --color-neutral-t90: #E6E0E2;
-  --color-neutral-t95: #F4F1F2;
-  --color-neutral-t100: #FFFFFF;
+  --color-neutral-t50: #7e676c;
+  --color-neutral-t60: #9a8488;
+  --color-neutral-t70: #b3a3a6;
+  --color-neutral-t80: #cdc1c4;
+  --color-neutral-t90: #e6e0e2;
+  --color-neutral-t95: #f4f1f2;
+  --color-neutral-t100: #ffffff;
 
   /* --- ERROR --- */
-  --color-error:         #B3261E;
-  --color-error-light:   #F9DEDC;
-  --color-on-error:      #FFFFFF;
-
-  /* --- SEMANTIC SURFACE TOKENS (dark mode ready via :root override) --- */
-  --color-surface:          var(--surface);
-  --color-surface-variant:  var(--surface-variant);
-  --color-on-surface:       var(--on-surface);
-  --color-outline:          var(--outline);
+  --color-error: #b3261e;
+  --color-error-light: #f9dedc;
+  --color-on-error: #ffffff;
 }
 
-/* Light mode surfaces */
+/* --- shadcn/ui semantic tokens bridged via @theme inline --- */
+/* These create Tailwind utilities (bg-background, text-foreground, etc.)  */
+/* that reference CSS vars defined in :root below.                         */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Light mode */
 :root {
-  --surface:         #FFFBFE;
-  --surface-variant: #F4F1F2;
-  --on-surface:      #1F0A0E;
-  --outline:         #9A8488;
+  --radius: 0.5rem;
+
+  /* surfaces */
+  --background: #fffbfe;
+  --foreground: #1f0a0e;
+  --card: #ffffff;
+  --card-foreground: #1f0a0e;
+  --popover: #ffffff;
+  --popover-foreground: #1f0a0e;
+
+  /* primary (crimson) */
+  --primary-foreground: #ffffff;
+
+  /* muted / neutral */
+  --muted: #f4f1f2;
+  --muted-foreground: #9a8488;
+
+  /* accent (light crimson tint) */
+  --accent: #fcdee4;
+  --accent-foreground: #670a1c;
+
+  /* destructive */
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+
+  /* borders / inputs / focus */
+  --border: #e6e0e2;
+  --input: #e6e0e2;
+  --ring: #dc143c;
+
+  /* legacy surface tokens (used in body) */
+  --surface: #fffbfe;
+  --surface-variant: #f4f1f2;
+  --on-surface: #1f0a0e;
+  --outline: #9a8488;
 }
 
-/* Dark mode surfaces */
+/* Dark mode */
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface:         #1F0A0E;
+    --background: #1f0a0e;
+    --foreground: #ede0e1;
+    --card: #312024;
+    --card-foreground: #ede0e1;
+    --popover: #312024;
+    --popover-foreground: #ede0e1;
+    --primary-foreground: #ffffff;
+    --muted: #312024;
+    --muted-foreground: #7e676c;
+    --accent: #38050f;
+    --accent-foreground: #f9b9c6;
+    --destructive: #cf6679;
+    --destructive-foreground: #ffffff;
+    --border: #46393c;
+    --input: #46393c;
+    --ring: #ed3b5f;
+
+    --surface: #1f0a0e;
     --surface-variant: #312024;
-    --on-surface:      #EDE0E1;
-    --outline:         #7E676C;
+    --on-surface: #ede0e1;
+    --outline: #7e676c;
   }
 }
 
 body {
-  background-color: var(--surface);
-  color: var(--on-surface);
+  background-color: var(--background);
+  color: var(--foreground);
 }

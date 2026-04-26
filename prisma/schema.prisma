@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PartOfSpeech {
+  noun
+  verb
+  adjective
+  adverb
+  preposition
+  conjunction
+  pronoun
+  interjection
+  phrase
+  other
+}
+
+enum ReviewMode {
+  flashcard
+  fill_blank
+}
+
+model User {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  emailVerified  DateTime?
+  name           String?
+  image          String?
+  createdAt      DateTime      @default(now())
+  accounts     Account[]
+  sessions     Session[]
+  words        Word[]
+  categories   Category[]
+  reviewEvents ReviewEvent[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Word {
+  id         String         @id @default(cuid())
+  userId     String
+  term       String
+  imageUrl   String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contexts   Context[]
+  categories WordCategory[]
+  reviews    ReviewEvent[]
+}
+
+model Context {
+  id           String       @id @default(cuid())
+  wordId       String
+  partOfSpeech PartOfSpeech
+  phonetic     String?
+  audioUrl     String?
+  meaning      String
+  order        Int          @default(0)
+  word         Word         @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  examples     Example[]
+}
+
+model Example {
+  id        String  @id @default(cuid())
+  contextId String
+  text      String
+  context   Context @relation(fields: [contextId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id        String         @id @default(cuid())
+  userId    String
+  name      String
+  color     String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  words     WordCategory[]
+}
+
+model WordCategory {
+  wordId     String
+  categoryId String
+  word       Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([wordId, categoryId])
+}
+
+model ReviewEvent {
+  id         String     @id @default(cuid())
+  userId     String
+  wordId     String
+  mode       ReviewMode
+  correct    Boolean
+  reviewedAt DateTime   @default(now())
+  durationMs Int
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word       Word       @relation(fields: [wordId], references: [id], onDelete: Cascade)
+}

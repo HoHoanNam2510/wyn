@@ -47,7 +47,7 @@ ReviewEvent   → id, userId, wordId, mode (flashcard | fill_blank), correct (bo
 
 ## Current Phase Status
 
-- [ ] **Phase 1** — Setup + Auth + CRUD words/contexts/examples + Categories + auto-fetch (dictionary + Unsplash)
+- [x] **Phase 1** — Setup + Auth + CRUD words/contexts/examples + Categories + auto-fetch (dictionary + Unsplash)
 - [ ] **Phase 2** — Review modes (Flashcard MC + Fill-in-blank) + ReviewEvent logging
 - [ ] **Phase 3** — Statistics dashboard
 - [ ] **Phase 4** — Polish (dark mode, keyboard shortcuts, audio playback, mobile)
@@ -58,20 +58,20 @@ Update with `[x]` when a phase is complete.
 
 ## Finalized Tech Decisions
 
-| Decision | Choice | Reason |
-|---|---|---|
-| Database | PostgreSQL via Neon (free tier) | Relational data — MongoDB was rejected |
-| ORM | Prisma | Type-safe, migrations, clean aggregation for stats |
-| Auth | Auth.js v5 with Google OAuth | No password management, single-click login |
-| UI Components | shadcn/ui + Tailwind CSS | No external component maintenance, copyable |
-| Forms | react-hook-form + zod | Shared client/server validation, fully type-safe |
-| Charts | Recharts | Sufficient for stats needs, no D3 overhead |
-| Phonetics | dictionaryapi.dev (free, no key needed) | Auto-fetch on word add, user can edit |
-| Audio | `audioUrl` from dictionaryapi.dev | Native `<audio>` element, zero cost |
-| Images | Unsplash API (free, 50 req/hr) | Auto-suggest 8 images on word add, user picks 1 |
-| SRS | **Not in scope** (Phase 1–4) | Add after Phase 4 if needed; schema is ready for it |
-| CSV import | **Not in scope** | User has no existing data |
-| Example translation | **Not in scope** | English-only examples |
+| Decision            | Choice                                  | Reason                                                                                |
+| ------------------- | --------------------------------------- | ------------------------------------------------------------------------------------- |
+| Database            | PostgreSQL via Neon (free tier)         | Relational data — MongoDB was rejected                                                |
+| ORM                 | Prisma **7** + `@prisma/adapter-pg`     | Prisma 7 requires driver adapter; `DIRECT_URL` for migrations, pooler URL for runtime |
+| Auth                | Auth.js v5 with Google OAuth            | No password management, single-click login                                            |
+| UI Components       | shadcn/ui + Tailwind CSS                | No external component maintenance, copyable                                           |
+| Forms               | react-hook-form + zod                   | Shared client/server validation, fully type-safe                                      |
+| Charts              | Recharts                                | Sufficient for stats needs, no D3 overhead                                            |
+| Phonetics           | dictionaryapi.dev (free, no key needed) | Auto-fetch on word add, user can edit                                                 |
+| Audio               | `audioUrl` from dictionaryapi.dev       | Native `<audio>` element, zero cost                                                   |
+| Images              | Unsplash API (free, 50 req/hr)          | Auto-suggest 8 images on word add, user picks 1                                       |
+| SRS                 | **Not in scope** (Phase 1–4)            | Add after Phase 4 if needed; schema is ready for it                                   |
+| CSV import          | **Not in scope**                        | User has no existing data                                                             |
+| Example translation | **Not in scope**                        | English-only examples                                                                 |
 
 ---
 
@@ -91,13 +91,20 @@ Update with `[x]` when a phase is complete.
 ## Env Variables
 
 ```env
-DATABASE_URL=                # Neon PostgreSQL connection string
+DATABASE_URL=                # Neon pooler connection string (for runtime queries via @prisma/adapter-pg)
+DIRECT_URL=                  # Neon direct connection string (for prisma migrate dev — remove -pooler from hostname)
 AUTH_GOOGLE_ID=              # Google OAuth client ID
 AUTH_GOOGLE_SECRET=          # Google OAuth client secret
 AUTH_SECRET=                 # openssl rand -base64 32
 UNSPLASH_ACCESS_KEY=         # Unsplash API (free, 50 req/hr on demo, 5000/hr on production)
 NEXT_PUBLIC_APP_URL=         # http://localhost:3000 or https://your-app.vercel.app
 ```
+
+**IMPORTANT — Next.js 16 changes:**
+
+- `middleware.ts` is deprecated → use `proxy.ts` with named export `proxy` (not default)
+- Prisma client is generated to `app/generated/prisma/client.ts` — import from `@/app/generated/prisma/client`
+- `prisma.config.ts` controls CLI datasource URL (uses `DIRECT_URL`); runtime client uses `DATABASE_URL` via `Pool` + `PrismaPg` adapter
 
 ---
 
