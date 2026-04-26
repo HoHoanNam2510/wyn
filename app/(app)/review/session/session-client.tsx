@@ -22,6 +22,7 @@ import type {
   FillBlankQuestion,
 } from '@/lib/review/pickQuestions';
 import { logReviewEvent } from '@/app/actions/reviews';
+import { AudioButton } from '@/components/ui/audio-button';
 
 type AnswerRecord = {
   wordId: string;
@@ -320,7 +321,13 @@ function FlashcardView({
     <div className="space-y-4">
       {question.imageUrl ? (
         <div className="relative h-48 w-full rounded-xl overflow-hidden border border-border bg-muted">
-          <Image src={question.imageUrl} alt="" fill className="object-cover" />
+          <Image
+            src={question.imageUrl}
+            alt=""
+            fill
+            sizes="(min-width: 640px) 576px, 100vw"
+            className="object-cover"
+          />
         </div>
       ) : (
         <div className="h-48 rounded-xl border border-border bg-muted flex items-center justify-center">
@@ -331,12 +338,25 @@ function FlashcardView({
       )}
 
       <div className="bg-card border border-border rounded-xl px-5 py-4">
-        <Badge
-          variant="outline"
-          className="mb-2 text-xs text-primary border-primary/30"
-        >
-          {question.partOfSpeech}
-        </Badge>
+        <div className="flex items-center justify-between mb-2">
+          <Badge
+            variant="outline"
+            className="text-xs text-primary border-primary/30"
+          >
+            {question.partOfSpeech}
+          </Badge>
+          {question.audioUrl && (
+            <AudioButton
+              url={question.audioUrl}
+              label={`Phát âm ${question.term}`}
+            />
+          )}
+        </div>
+        {question.phonetic && (
+          <p className="text-xs text-muted-foreground italic mb-1">
+            {question.phonetic}
+          </p>
+        )}
         <p className="text-base leading-relaxed">{question.meaning}</p>
       </div>
 
@@ -421,7 +441,7 @@ function FillBlankView({
             <span key={i}>
               {part}
               {i < arr.length - 1 && (
-                <span className="inline-block min-w-[5rem] border-b-2 border-primary mx-1 align-bottom" />
+                <span className="inline-block min-w-20 border-b-2 border-primary mx-1 align-bottom" />
               )}
             </span>
           ))}

@@ -24,6 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { deleteWord } from '@/app/actions/words';
+import { AudioButton } from '@/components/ui/audio-button';
 
 function fmtDateTime(date: Date | string): string {
   const d = new Date(date);
@@ -32,7 +33,12 @@ function fmtDateTime(date: Date | string): string {
 }
 
 type Category = { id: string; name: string; color: string };
-type WordContext = { partOfSpeech: string; meaning: string };
+type WordContext = {
+  partOfSpeech: string;
+  meaning: string;
+  phonetic: string | null;
+  audioUrl: string | null;
+};
 type WordCategory = { category: Category };
 type Word = {
   id: string;
@@ -51,6 +57,7 @@ type Props = {
   totalPages: number;
   initialQ: string;
   initialCategory: string;
+  initialSort: string;
 };
 
 export function WordListClient({
@@ -60,6 +67,7 @@ export function WordListClient({
   totalPages,
   initialQ,
   initialCategory,
+  initialSort,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -68,15 +76,16 @@ export function WordListClient({
   const [deleteTarget, setDeleteTarget] = useState<Word | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function applyFilters(q: string, cat: string, p = 1) {
+  function applyFilters(q: string, cat: string, p = 1, sort = initialSort) {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (cat) params.set('category', cat);
     if (p > 1) params.set('page', String(p));
+    if (sort !== 'newest') params.set('sort', sort);
     router.push(`${pathname}?${params.toString()}`);
   }
 
-  function handleSearchSubmit(e: React.FormEvent) {
+  function handleSearchSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     applyFilters(search, initialCategory);
   }
@@ -142,6 +151,21 @@ export function WordListClient({
           </SelectContent>
         </Select>
 
+        <Select
+          value={initialSort}
+          onValueChange={(val) => applyFilters(search, initialCategory, 1, val)}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest first</SelectItem>
+            <SelectItem value="oldest">Oldest first</SelectItem>
+            <SelectItem value="az">A → Z</SelectItem>
+            <SelectItem value="za">Z → A</SelectItem>
+          </SelectContent>
+        </Select>
+
         <div className="flex border border-border rounded-md overflow-hidden">
           <Button
             variant="ghost"
@@ -180,11 +204,12 @@ export function WordListClient({
       {/* Card view */}
       {words.length > 0 && view === 'card' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {words.map((word) => (
+          {words.map((word, i) => (
             <WordCard
               key={word.id}
               word={word}
               onDelete={() => setDeleteTarget(word)}
+              priority={i < 2}
             />
           ))}
         </div>
@@ -198,9 +223,27 @@ export function WordListClient({
               key={word.id}
               className="flex items-center justify-between px-4 py-3"
             >
-              <div className="flex items-center gap-4 min-w-0">
+              <div
+                className="flex items-center gap-4 min-w-0 flex-1 hover:opacity-80 transition-opacity cursor-pointer"
+                onClick={() => router.push(`/words/${word.id}`)}
+              >
                 <div className="min-w-0">
-                  <p className="font-semibold text-sm">{word.term}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-semibold text-sm">{word.term}</p>
+                    {word.contexts[0]?.audioUrl && (
+                      <span onClick={(e) => e.stopPropagation()}>
+                        <AudioButton
+                          url={word.contexts[0].audioUrl}
+                          label={`Phát âm ${word.term}`}
+                        />
+                      </span>
+                    )}
+                    {word.contexts[0]?.phonetic && (
+                      <span className="text-xs text-muted-foreground italic">
+                        {word.contexts[0].phonetic}
+                      </span>
+                    )}
+                  </div>
                   {word.contexts[0] && (
                     <p className="text-xs text-muted-foreground truncate max-w-xs">
                       <span className="text-primary mr-1">
@@ -312,59 +355,83 @@ export function WordListClient({
   );
 }
 
-function WordCard({ word, onDelete }: { word: Word; onDelete: () => void }) {
+function WordCard({ word, onDelete, priority = false }: { word: Word; onDelete: () => void; priority?: boolean }) {
+  const router = useRouter();
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-      {word.imageUrl ? (
-        <div className="relative h-32 bg-muted shrink-0">
-          <Image
-            src={word.imageUrl}
-            alt={word.term}
-            fill
-            className="object-cover"
-          />
-        </div>
-      ) : (
-        <div className="h-32 bg-muted flex items-center justify-center shrink-0">
-          <span className="text-4xl font-bold text-muted-foreground/30">
-            {word.term[0]?.toUpperCase()}
-          </span>
-        </div>
-      )}
-      <div className="p-3 flex flex-col gap-2 flex-1">
-        <p className="font-semibold">{word.term}</p>
-        {word.contexts[0] && (
-          <p className="text-xs text-muted-foreground line-clamp-2">
-            <span className="text-primary font-medium mr-1">
-              {word.contexts[0].partOfSpeech}
-            </span>
-            {word.contexts[0].meaning}
-          </p>
-        )}
-        <div className="mt-auto">
-          <div className="flex gap-1 flex-wrap">
-            {word.categories.slice(0, 2).map(({ category }) => (
-              <Badge
-                key={category.id}
-                variant="outline"
-                className="text-xs"
-                style={{ borderColor: category.color, color: category.color }}
-              >
-                {category.name}
-              </Badge>
-            ))}
-            {word.categories.length > 2 && (
-              <Badge variant="outline" className="text-xs">
-                +{word.categories.length - 2}
-              </Badge>
-            )}
+      <div
+        className="flex flex-col flex-1 min-h-0 cursor-pointer"
+        onClick={() => router.push(`/words/${word.id}`)}
+      >
+        {word.imageUrl ? (
+          <div className="relative h-32 bg-muted shrink-0">
+            <Image
+              src={word.imageUrl}
+              alt={word.term}
+              fill
+              sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+              className="object-cover"
+              priority={priority}
+            />
           </div>
-          <p
-            className="text-[11px] text-muted-foreground/60 mt-1.5"
-            suppressHydrationWarning
-          >
-            {fmtDateTime(word.createdAt)}
-          </p>
+        ) : (
+          <div className="h-32 bg-muted flex items-center justify-center shrink-0">
+            <span className="text-4xl font-bold text-muted-foreground/30">
+              {word.term[0]?.toUpperCase()}
+            </span>
+          </div>
+        )}
+        <div className="p-3 flex flex-col gap-2 flex-1 border-t border-border">
+          <p className="font-semibold">{word.term}</p>
+          {word.contexts[0]?.audioUrl && (
+            <div
+              className="flex items-center gap-1.5 -mt-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {word.contexts[0].phonetic && (
+                <span className="text-xs text-muted-foreground italic">
+                  {word.contexts[0].phonetic}
+                </span>
+              )}
+              <AudioButton
+                url={word.contexts[0].audioUrl}
+                label={`Phát âm ${word.term}`}
+              />
+            </div>
+          )}
+          {word.contexts[0] && (
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              <span className="text-primary font-medium mr-1">
+                {word.contexts[0].partOfSpeech}
+              </span>
+              {word.contexts[0].meaning}
+            </p>
+          )}
+          <div className="mt-auto">
+            <div className="flex gap-1 flex-wrap">
+              {word.categories.slice(0, 2).map(({ category }) => (
+                <Badge
+                  key={category.id}
+                  variant="outline"
+                  className="text-xs"
+                  style={{ borderColor: category.color, color: category.color }}
+                >
+                  {category.name}
+                </Badge>
+              ))}
+              {word.categories.length > 2 && (
+                <Badge variant="outline" className="text-xs">
+                  +{word.categories.length - 2}
+                </Badge>
+              )}
+            </div>
+            <p
+              className="text-[11px] text-muted-foreground/60 mt-1.5"
+              suppressHydrationWarning
+            >
+              {fmtDateTime(word.createdAt)}
+            </p>
+          </div>
         </div>
       </div>
       <div className="flex border-t border-border">

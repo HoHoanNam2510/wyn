@@ -7,6 +7,8 @@ export type FlashcardQuestion = {
   imageUrl: string | null;
   meaning: string;
   partOfSpeech: string;
+  phonetic: string | null;
+  audioUrl: string | null;
   choices: string[];
   correctChoice: string;
 };
@@ -75,6 +77,8 @@ export async function pickQuestions({
         imageUrl: word.imageUrl,
         meaning: ctx.meaning,
         partOfSpeech: ctx.partOfSpeech,
+        phonetic: ctx.phonetic,
+        audioUrl: ctx.audioUrl,
         choices,
         correctChoice: word.term,
       };

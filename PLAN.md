@@ -138,15 +138,50 @@ lib/stats/queries.ts    ← Prisma aggregation queries (group by day, etc.)
 
 ## Phase 4 — Polish
 
-**Status:** `[ ]` Not started  
+**Status:** `[x]` Complete  
 **Prerequisite:** Phase 3 complete
 
-- [ ] Dark mode (next-themes)
-- [ ] Audio playback button on word/context (using `audioUrl` field)
-- [ ] Keyboard shortcuts in review (already in Phase 2 spec)
-- [ ] Mobile responsive audit and fixes
-- [ ] Empty states (no words, no categories, no review data)
-- [ ] Loading skeletons for async data
+### Dark mode
+- [x] Install `next-themes`, wrap root layout with `ThemeProvider`
+- [x] `@custom-variant dark` in globals.css — class-based dark mode (not media query)
+- [x] `.dark {}` token block replacing `@media (prefers-color-scheme: dark)` — near-black `#0d0d0d` background
+- [x] `ThemeToggle` component (Sun/Moon icon, mounted guard for hydration safety)
+
+### Audio playback
+- [x] `AudioButton` component — native Web Audio API, play/stop, loading state
+- [x] Audio button on word cards (card + list view) with `stopPropagation` fix
+- [x] Audio button on review session flashcard
+- [x] `phonetic` + `audioUrl` surfaced in `FlashcardQuestion` type
+
+### Loading skeletons
+- [x] `loading.tsx` for `/words`, `/categories`, `/stats`, `/review`, `/dashboard`
+- [x] All skeletons match `max-w-*` + `mx-auto` of their page content
+
+### Mobile responsive
+- [x] `SidebarContext` — shared open/close state between Sidebar and TopBar
+- [x] Sidebar slide-in with backdrop on mobile (`sm:hidden` hamburger, `sm:static` on desktop)
+- [x] `HamburgerButton` — mobile-only, calls `useSidebar().toggle`
+- [x] `TopBar` — `ml-auto` on right group so toggle+avatar stays right-aligned when hamburger hidden
+
+### UX improvements (beyond original scope)
+- [x] Word detail page (`/words/[id]`) — dedicated read view: all contexts, examples numbered, audio, categories, Edit/Delete buttons
+- [x] Word cards and list rows are clickable → navigate to detail page (via `router.push`, not Link, to avoid audio click conflicts)
+- [x] Sort dropdown on words page: Newest / Oldest / A→Z / Z→A (URL param `?sort=`, no DB migration needed)
+- [x] Main content `mx-auto` centering on dashboard, categories, review, stats pages
+- [x] Separator `border-t` between image area and content on word cards
+- [x] LCP `priority` prop: sidebar logo, word detail image, first 2 word cards
+- [x] Unsplash image grid: `grid-cols-2 sm:grid-cols-4` (was broken on mobile)
+
+### Key files (new)
+```
+components/layout/theme-toggle.tsx       ← dark/light toggle button
+components/layout/hamburger-button.tsx   ← mobile sidebar trigger
+components/layout/sidebar-context.tsx    ← shared sidebar open/close state
+components/ui/audio-button.tsx           ← audio playback component
+app/(app)/words/[id]/page.tsx            ← word detail page (RSC)
+app/(app)/words/[id]/word-delete-button.tsx  ← delete confirm dialog (client)
+app/(app)/*/loading.tsx                  ← skeleton loading for all main pages
+```
 
 ---
 

@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ============================================================
    DESIGN SYSTEM — Vocabulary Web App
    Primary: Crimson #DC143C | 13-shade tonal palette (T0–T100)
@@ -137,31 +139,28 @@
   --outline: #9a8488;
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1f0a0e;
-    --foreground: #ede0e1;
-    --card: #312024;
-    --card-foreground: #ede0e1;
-    --popover: #312024;
-    --popover-foreground: #ede0e1;
-    --primary-foreground: #ffffff;
-    --muted: #312024;
-    --muted-foreground: #7e676c;
-    --accent: #38050f;
-    --accent-foreground: #f9b9c6;
-    --destructive: #cf6679;
-    --destructive-foreground: #ffffff;
-    --border: #46393c;
-    --input: #46393c;
-    --ring: #ed3b5f;
-
-    --surface: #1f0a0e;
-    --surface-variant: #312024;
-    --on-surface: #ede0e1;
-    --outline: #7e676c;
-  }
+/* Dark mode — controlled by .dark class on <html> (next-themes) */
+.dark {
+  --background: #0d0d0d;
+  --foreground: #ede0e1;
+  --card: #1a1a1a;
+  --card-foreground: #ede0e1;
+  --popover: #1a1a1a;
+  --popover-foreground: #ede0e1;
+  --primary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #7e676c;
+  --accent: #2a1a1d;
+  --accent-foreground: #f9b9c6;
+  --destructive: #cf6679;
+  --destructive-foreground: #ffffff;
+  --border: #2e2e2e;
+  --input: #2e2e2e;
+  --ring: #ed3b5f;
+  --surface: #0d0d0d;
+  --surface-variant: #1a1a1a;
+  --on-surface: #ede0e1;
+  --outline: #7e676c;
 }
 
 body {

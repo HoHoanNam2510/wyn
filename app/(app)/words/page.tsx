@@ -8,7 +8,19 @@ import { WordListClient } from './word-list-client';
 const PAGE_SIZE = 50;
 
 type Props = {
-  searchParams: Promise<{ q?: string; category?: string; page?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    page?: string;
+    sort?: string;
+  }>;
+};
+
+const SORT_MAP = {
+  newest: { createdAt: 'desc' as const },
+  oldest: { createdAt: 'asc' as const },
+  az: { term: 'asc' as const },
+  za: { term: 'desc' as const },
 };
 
 export default async function WordsPage({ searchParams }: Props) {
@@ -19,6 +31,7 @@ export default async function WordsPage({ searchParams }: Props) {
   const q = params.q?.trim() ?? '';
   const categoryId = params.category ?? '';
   const page = Math.max(1, Number(params.page ?? 1));
+  const sort = (params.sort ?? 'newest') as keyof typeof SORT_MAP;
   const skip = (page - 1) * PAGE_SIZE;
 
   const where = {
@@ -32,7 +45,7 @@ export default async function WordsPage({ searchParams }: Props) {
       where,
       skip,
       take: PAGE_SIZE,
-      orderBy: { createdAt: 'desc' },
+      orderBy: SORT_MAP[sort] ?? SORT_MAP.newest,
       include: {
         contexts: { orderBy: { order: 'asc' }, take: 1 },
         categories: { include: { category: true } },
@@ -69,6 +82,7 @@ export default async function WordsPage({ searchParams }: Props) {
         totalPages={totalPages}
         initialQ={q}
         initialCategory={categoryId}
+        initialSort={sort}
       />
     </div>
   );

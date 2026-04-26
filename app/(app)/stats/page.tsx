@@ -89,7 +89,7 @@ export default async function StatsPage() {
   const hasReviews = stats.reviewsPerDay.some((d) => d.count > 0);
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">Statistics</h1>
         <p className="text-muted-foreground mt-1">

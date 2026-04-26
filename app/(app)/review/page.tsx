@@ -18,7 +18,7 @@ export default async function ReviewPage() {
   ]);
 
   return (
-    <div className="max-w-md">
+    <div className="max-w-md mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Review</h1>
         <p className="text-muted-foreground mt-1">

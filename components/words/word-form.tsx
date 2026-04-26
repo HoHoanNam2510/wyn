@@ -302,6 +302,7 @@ export function WordForm({ categories, defaultValues, wordId }: Props) {
                 src={imageUrl}
                 alt="Word image"
                 fill
+                sizes="(min-width: 768px) 672px, 100vw"
                 className="object-cover"
               />
               <Button
@@ -329,7 +330,7 @@ export function WordForm({ categories, defaultValues, wordId }: Props) {
                   Close
                 </Button>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {unsplashPhotos.map((photo) => (
                   <button
                     key={photo.id}
@@ -341,6 +342,7 @@ export function WordForm({ categories, defaultValues, wordId }: Props) {
                       src={photo.urls.small}
                       alt={photo.alt_description ?? ''}
                       fill
+                      sizes="168px"
                       className="object-cover"
                     />
                   </button>
