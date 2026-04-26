@@ -25,6 +25,12 @@ import {
 } from '@/components/ui/dialog';
 import { deleteWord } from '@/app/actions/words';
 
+function fmtDateTime(date: Date | string): string {
+  const d = new Date(date);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 type Category = { id: string; name: string; color: string };
 type WordContext = { partOfSpeech: string; meaning: string };
 type WordCategory = { category: Category };
@@ -203,6 +209,12 @@ export function WordListClient({
                       {word.contexts[0].meaning}
                     </p>
                   )}
+                  <p
+                    className="text-[11px] text-muted-foreground/60 mt-0.5"
+                    suppressHydrationWarning
+                  >
+                    {fmtDateTime(word.createdAt)}
+                  </p>
                 </div>
                 <div className="flex gap-1 flex-wrap">
                   {word.categories.map(({ category }) => (
@@ -329,22 +341,30 @@ function WordCard({ word, onDelete }: { word: Word; onDelete: () => void }) {
             {word.contexts[0].meaning}
           </p>
         )}
-        <div className="flex gap-1 flex-wrap mt-auto">
-          {word.categories.slice(0, 2).map(({ category }) => (
-            <Badge
-              key={category.id}
-              variant="outline"
-              className="text-xs"
-              style={{ borderColor: category.color, color: category.color }}
-            >
-              {category.name}
-            </Badge>
-          ))}
-          {word.categories.length > 2 && (
-            <Badge variant="outline" className="text-xs">
-              +{word.categories.length - 2}
-            </Badge>
-          )}
+        <div className="mt-auto">
+          <div className="flex gap-1 flex-wrap">
+            {word.categories.slice(0, 2).map(({ category }) => (
+              <Badge
+                key={category.id}
+                variant="outline"
+                className="text-xs"
+                style={{ borderColor: category.color, color: category.color }}
+              >
+                {category.name}
+              </Badge>
+            ))}
+            {word.categories.length > 2 && (
+              <Badge variant="outline" className="text-xs">
+                +{word.categories.length - 2}
+              </Badge>
+            )}
+          </div>
+          <p
+            className="text-[11px] text-muted-foreground/60 mt-1.5"
+            suppressHydrationWarning
+          >
+            {fmtDateTime(word.createdAt)}
+          </p>
         </div>
       </div>
       <div className="flex border-t border-border">

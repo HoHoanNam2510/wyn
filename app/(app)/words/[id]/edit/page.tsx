@@ -51,7 +51,7 @@ export default async function EditWordPage({ params }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">Edit &ldquo;{word.term}&rdquo;</h1>
         <p className="text-muted-foreground mt-1">

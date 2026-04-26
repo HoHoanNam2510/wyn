@@ -49,6 +49,7 @@ import {
 } from '@/lib/schemas/word';
 import { createWord, updateWord } from '@/app/actions/words';
 import type { UnsplashPhoto } from '@/lib/unsplash';
+import type { ParsedContext } from '@/lib/dictionary';
 
 type Category = { id: string; name: string; color: string };
 
@@ -106,7 +107,20 @@ export function WordForm({ categories, defaultValues, wordId }: Props) {
         toast.info('No dictionary results found');
         return;
       }
-      form.setValue('contexts', data.contexts);
+      form.setValue(
+        'contexts',
+        data.contexts.map((ctx: ParsedContext) => ({
+          partOfSpeech:
+            ctx.partOfSpeech as WordFormValues['contexts'][0]['partOfSpeech'],
+          phonetic: ctx.phonetic ?? '',
+          audioUrl: ctx.audioUrl ?? '',
+          meaning: ctx.meaning ?? '',
+          order: 0,
+          examples: (ctx.examples?.length ? ctx.examples : ['']).map(
+            (t: string) => ({ text: t })
+          ),
+        }))
+      );
       toast.success('Auto-filled from dictionary');
     } catch {
       toast.error('Dictionary fetch failed');

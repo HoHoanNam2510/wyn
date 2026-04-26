@@ -14,7 +14,7 @@ export async function TopBar() {
   const user = session?.user;
 
   return (
-    <header className="h-14 shrink-0 border-b border-border bg-card flex items-center justify-end px-6">
+    <header className="h-16 shrink-0 border-b border-border bg-card flex items-center justify-end px-6">
       {user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
