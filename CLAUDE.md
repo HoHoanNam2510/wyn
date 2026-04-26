@@ -49,7 +49,7 @@ ReviewEvent   → id, userId, wordId, mode (flashcard | fill_blank), correct (bo
 
 - [x] **Phase 1** — Setup + Auth + CRUD words/contexts/examples + Categories + auto-fetch (dictionary + Unsplash)
 - [x] **Phase 2** — Review modes (Flashcard MC + Fill-in-blank) + ReviewEvent logging
-- [ ] **Phase 3** — Statistics dashboard
+- [x] **Phase 3** — Statistics dashboard
 - [ ] **Phase 4** — Polish (dark mode, keyboard shortcuts, audio playback, mobile)
 
 Update with `[x]` when a phase is complete.
