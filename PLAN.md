@@ -69,7 +69,7 @@ app/actions/categories.ts  ← Server Actions: createCategory, updateCategory, d
 
 ## Phase 2 — Review Modes
 
-**Status:** `[ ]` Not started  
+**Status:** `[x]` Complete  
 **Prerequisite:** Phase 1 complete (need real word data to review)
 
 **Goal:** Two review modes that use the examples created in Phase 1.
