@@ -209,7 +209,7 @@ export function WordListClient({
               key={word.id}
               word={word}
               onDelete={() => setDeleteTarget(word)}
-              priority={i < 2}
+              priority={i < 8}
             />
           ))}
         </div>
@@ -355,7 +355,15 @@ export function WordListClient({
   );
 }
 
-function WordCard({ word, onDelete, priority = false }: { word: Word; onDelete: () => void; priority?: boolean }) {
+function WordCard({
+  word,
+  onDelete,
+  priority = false,
+}: {
+  word: Word;
+  onDelete: () => void;
+  priority?: boolean;
+}) {
   const router = useRouter();
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden flex flex-col hover:shadow-md transition-shadow">

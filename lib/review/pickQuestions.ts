@@ -18,6 +18,10 @@ export type FillBlankQuestion = {
   wordId: string;
   term: string;
   sentence: string;
+  partOfSpeech: string;
+  meaning: string;
+  phonetic: string | null;
+  audioUrl: string | null;
 };
 
 export type ReviewQuestion = FlashcardQuestion | FillBlankQuestion;
@@ -87,7 +91,13 @@ export async function pickQuestions({
     const eligible: {
       wordId: string;
       term: string;
-      examples: { text: string }[];
+      examples: {
+        text: string;
+        partOfSpeech: string;
+        meaning: string;
+        phonetic: string | null;
+        audioUrl: string | null;
+      }[];
     }[] = [];
 
     for (const word of words) {
@@ -95,9 +105,26 @@ export async function pickQuestions({
         word.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
         'i'
       );
-      const matchingExamples = word.contexts
-        .flatMap((c) => c.examples)
-        .filter((ex) => termRegex.test(ex.text));
+      const matchingExamples: {
+        text: string;
+        partOfSpeech: string;
+        meaning: string;
+        phonetic: string | null;
+        audioUrl: string | null;
+      }[] = [];
+      for (const ctx of word.contexts) {
+        for (const ex of ctx.examples) {
+          if (termRegex.test(ex.text)) {
+            matchingExamples.push({
+              text: ex.text,
+              partOfSpeech: ctx.partOfSpeech,
+              meaning: ctx.meaning,
+              phonetic: ctx.phonetic,
+              audioUrl: ctx.audioUrl,
+            });
+          }
+        }
+      }
 
       if (matchingExamples.length > 0) {
         eligible.push({
@@ -122,7 +149,16 @@ export async function pickQuestions({
       );
       const sentence = example.text.replace(termRegex, '_______');
 
-      return { type: 'fill_blank', wordId, term, sentence };
+      return {
+        type: 'fill_blank',
+        wordId,
+        term,
+        sentence,
+        partOfSpeech: example.partOfSpeech,
+        meaning: example.meaning,
+        phonetic: example.phonetic,
+        audioUrl: example.audioUrl,
+      };
     });
   }
 }

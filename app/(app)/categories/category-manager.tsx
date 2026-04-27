@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -141,16 +142,22 @@ export function CategoryManager({
               key={cat.id}
               className="flex items-center justify-between px-4 py-3 bg-card border border-border rounded-lg"
             >
-              <div className="flex items-center gap-3">
+              <Link
+                href={`/words?category=${cat.id}`}
+                className="flex items-center gap-3 flex-1 min-w-0 group"
+              >
                 <span
                   className="h-4 w-4 rounded-full shrink-0"
                   style={{ backgroundColor: cat.color }}
                 />
-                <span className="font-medium">{cat.name}</span>
-                <Badge variant="secondary" className="text-xs">
+                <span className="font-medium group-hover:text-primary transition-colors truncate">
+                  {cat.name}
+                </span>
+                <Badge variant="secondary" className="text-xs shrink-0">
                   {cat._count.words} {cat._count.words === 1 ? 'word' : 'words'}
                 </Badge>
-              </div>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              </Link>
               <div className="flex gap-1">
                 <Button
                   variant="ghost"

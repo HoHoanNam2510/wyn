@@ -173,9 +173,24 @@ export function WordForm({ categories, defaultValues, wordId }: Props) {
         }
         router.push('/words');
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : 'Something went wrong'
-        );
+        if (err instanceof Error && err.message.startsWith('DUPLICATE_WORD:')) {
+          const existingId = err.message.slice('DUPLICATE_WORD:'.length);
+          toast.error(
+            <span>
+              Từ này đã tồn tại.{' '}
+              <a
+                href={`/words/${existingId}/edit`}
+                className="underline font-medium"
+              >
+                Chỉnh sửa tại đây →
+              </a>
+            </span>
+          );
+        } else {
+          toast.error(
+            err instanceof Error ? err.message : 'Something went wrong'
+          );
+        }
       }
     });
   }

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { WordListClient } from './word-list-client';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 type Props = {
   searchParams: Promise<{

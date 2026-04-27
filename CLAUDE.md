@@ -38,7 +38,7 @@ Context       → id, wordId (FK), partOfSpeech (enum), phonetic, audioUrl, mean
 Example       → id, contextId (FK), text
 Category      → id, userId (FK), name, color
 WordCategory  → wordId + categoryId (composite PK — join table for M:N)
-ReviewEvent   → id, userId, wordId, mode (flashcard | fill_blank), correct (bool), reviewedAt, durationMs
+ReviewEvent   → id, userId, wordId, mode (flashcard | fill_blank | sentence_build), correct (bool), reviewedAt, durationMs
 ```
 
 **"ALL" category**: Virtual — no DB row. Means "no category filter applied." Do NOT create a real ALL category in the DB.
@@ -51,6 +51,7 @@ ReviewEvent   → id, userId, wordId, mode (flashcard | fill_blank), correct (bo
 - [x] **Phase 2** — Review modes (Flashcard MC + Fill-in-blank) + ReviewEvent logging
 - [x] **Phase 3** — Statistics dashboard
 - [x] **Phase 4** — Polish (dark mode, audio playback, loading skeletons, mobile sidebar, word detail page, sort dropdown, LCP fixes)
+- [ ] **Phase 5** — Sentence Builder review mode (word-order grammar practice, Duolingo-style chip UI, DB migration for new ReviewMode enum value)
 
 Update with `[x]` when a phase is complete.
 

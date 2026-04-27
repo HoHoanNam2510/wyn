@@ -142,28 +142,33 @@ lib/stats/queries.ts    ← Prisma aggregation queries (group by day, etc.)
 **Prerequisite:** Phase 3 complete
 
 ### Dark mode
+
 - [x] Install `next-themes`, wrap root layout with `ThemeProvider`
 - [x] `@custom-variant dark` in globals.css — class-based dark mode (not media query)
 - [x] `.dark {}` token block replacing `@media (prefers-color-scheme: dark)` — near-black `#0d0d0d` background
 - [x] `ThemeToggle` component (Sun/Moon icon, mounted guard for hydration safety)
 
 ### Audio playback
+
 - [x] `AudioButton` component — native Web Audio API, play/stop, loading state
 - [x] Audio button on word cards (card + list view) with `stopPropagation` fix
 - [x] Audio button on review session flashcard
 - [x] `phonetic` + `audioUrl` surfaced in `FlashcardQuestion` type
 
 ### Loading skeletons
+
 - [x] `loading.tsx` for `/words`, `/categories`, `/stats`, `/review`, `/dashboard`
 - [x] All skeletons match `max-w-*` + `mx-auto` of their page content
 
 ### Mobile responsive
+
 - [x] `SidebarContext` — shared open/close state between Sidebar and TopBar
 - [x] Sidebar slide-in with backdrop on mobile (`sm:hidden` hamburger, `sm:static` on desktop)
 - [x] `HamburgerButton` — mobile-only, calls `useSidebar().toggle`
 - [x] `TopBar` — `ml-auto` on right group so toggle+avatar stays right-aligned when hamburger hidden
 
 ### UX improvements (beyond original scope)
+
 - [x] Word detail page (`/words/[id]`) — dedicated read view: all contexts, examples numbered, audio, categories, Edit/Delete buttons
 - [x] Word cards and list rows are clickable → navigate to detail page (via `router.push`, not Link, to avoid audio click conflicts)
 - [x] Sort dropdown on words page: Newest / Oldest / A→Z / Z→A (URL param `?sort=`, no DB migration needed)
@@ -173,6 +178,7 @@ lib/stats/queries.ts    ← Prisma aggregation queries (group by day, etc.)
 - [x] Unsplash image grid: `grid-cols-2 sm:grid-cols-4` (was broken on mobile)
 
 ### Key files (new)
+
 ```
 components/layout/theme-toggle.tsx       ← dark/light toggle button
 components/layout/hamburger-button.tsx   ← mobile sidebar trigger
@@ -182,6 +188,58 @@ app/(app)/words/[id]/page.tsx            ← word detail page (RSC)
 app/(app)/words/[id]/word-delete-button.tsx  ← delete confirm dialog (client)
 app/(app)/*/loading.tsx                  ← skeleton loading for all main pages
 ```
+
+---
+
+## Phase 5 — Sentence Builder Mode
+
+**Status:** `[ ]` In progress  
+**Prerequisite:** Phase 4 complete
+
+**Goal:** Add a third review mode focused on grammar and sentence structure, not just vocabulary recall. Words from an example sentence are shuffled into chips; the user clicks them back into the correct order (Duolingo-style).
+
+### How it works
+
+1. Pick an `Example.text` that contains the target word
+2. Split the sentence into word chips (split by space; punctuation stays attached to its word)
+3. Shuffle chips using Fisher-Yates
+4. User clicks a chip from the pool → appended to the sentence area (left-to-right)
+5. User clicks a chip in the sentence area → returned to the pool
+6. Submit → compare joined chips to original sentence (case-insensitive, trimmed)
+7. The target word chip is highlighted in primary color
+
+### Filter rules
+
+- Skip sentences with fewer than 5 tokens (too trivial)
+- Skip sentences with more than 15 tokens (too tedious)
+- Requires ≥ 1 word with a matching example (same eligibility as fill_blank)
+
+### Question type
+
+```typescript
+type SentenceBuildQuestion = {
+  type: 'sentence_build';
+  wordId: string;
+  term: string;
+  tokens: string[]; // shuffled chips
+  answer: string; // original sentence (for checking)
+  meaning: string;
+  partOfSpeech: string;
+};
+```
+
+### Files to change
+
+| File                                          | Change                                                     |
+| --------------------------------------------- | ---------------------------------------------------------- |
+| `prisma/schema.prisma`                        | Add `sentence_build` to `ReviewMode` enum                  |
+| `prisma/migrations/`                          | Run `npx prisma migrate dev`                               |
+| `lib/review/pickQuestions.ts`                 | Add `SentenceBuildQuestion` type + `sentence_build` branch |
+| `lib/schemas/review.ts`                       | Add `'sentence_build'` to `reviewModeValues` array         |
+| `app/actions/reviews.ts`                      | Add `'sentence_build'` to `mode` union type                |
+| `app/(app)/review/session/page.tsx`           | Accept and validate `sentence_build` mode param            |
+| `app/(app)/review/setup-client.tsx`           | Add third mode button                                      |
+| `app/(app)/review/session/session-client.tsx` | Add `SentenceBuildView` component + chip state             |
 
 ---
 

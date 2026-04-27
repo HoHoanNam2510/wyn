@@ -11,14 +11,26 @@ async function requireUser() {
   return session.user.id;
 }
 
+function normalizeTerm(term: string): string {
+  const t = term.trim();
+  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+}
+
 export async function createWord(raw: unknown) {
   const userId = await requireUser();
   const data = wordSchema.parse(raw);
+  const term = normalizeTerm(data.term);
+
+  const existing = await db.word.findFirst({
+    where: { userId, term: { equals: term, mode: 'insensitive' } },
+    select: { id: true },
+  });
+  if (existing) throw new Error(`DUPLICATE_WORD:${existing.id}`);
 
   const word = await db.word.create({
     data: {
       userId,
-      term: data.term,
+      term,
       imageUrl: data.imageUrl || null,
       categories: {
         create: data.categoryIds.map((categoryId) => ({ categoryId })),
@@ -45,9 +57,20 @@ export async function createWord(raw: unknown) {
 export async function updateWord(wordId: string, raw: unknown) {
   const userId = await requireUser();
   const data = wordSchema.parse(raw);
+  const term = normalizeTerm(data.term);
 
   const word = await db.word.findFirst({ where: { id: wordId, userId } });
   if (!word) throw new Error('Word not found');
+
+  const duplicate = await db.word.findFirst({
+    where: {
+      userId,
+      term: { equals: term, mode: 'insensitive' },
+      NOT: { id: wordId },
+    },
+    select: { id: true },
+  });
+  if (duplicate) throw new Error(`DUPLICATE_WORD:${duplicate.id}`);
 
   await db.$transaction([
     db.wordCategory.deleteMany({ where: { wordId } }),
@@ -55,7 +78,7 @@ export async function updateWord(wordId: string, raw: unknown) {
     db.word.update({
       where: { id: wordId },
       data: {
-        term: data.term,
+        term,
         imageUrl: data.imageUrl || null,
         categories: {
           create: data.categoryIds.map((categoryId) => ({ categoryId })),

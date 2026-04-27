@@ -118,7 +118,10 @@ export default async function WordDetailPage({ params }: Props) {
             {ctx.examples.length > 0 && (
               <ul className="space-y-1.5 border-l-2 border-border pl-4">
                 {ctx.examples.map((ex, ei) => (
-                  <li key={ex.id} className="text-sm text-muted-foreground italic">
+                  <li
+                    key={ex.id}
+                    className="text-sm text-muted-foreground italic"
+                  >
                     <span className="font-semibold not-italic text-muted-foreground/50 mr-1.5">
                       {ei + 1}.
                     </span>

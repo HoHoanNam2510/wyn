@@ -11,6 +11,11 @@ import {
   Clock,
   RotateCcw,
   BookOpen,
+  ChevronRight,
+  BookMarked,
+  Type,
+  Volume2,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +29,9 @@ import type {
 import { logReviewEvent } from '@/app/actions/reviews';
 import { AudioButton } from '@/components/ui/audio-button';
 
+const REVIEW_SECS = 15;
+const ANSWER_SECS = 30;
+
 type AnswerRecord = {
   wordId: string;
   term: string;
@@ -35,6 +43,38 @@ type FeedbackState = {
   correct: boolean;
   correctAnswer: string;
 } | null;
+
+type LifelineKey = 'definition' | 'phonetic' | 'audio' | 'partial';
+type Lifelines = Record<LifelineKey, boolean>;
+const LIFELINES_INIT: Lifelines = {
+  definition: false,
+  phonetic: false,
+  audio: false,
+  partial: false,
+};
+
+function maskWord(word: string): string {
+  return word
+    .split(' ')
+    .map((w) => {
+      if (w.length <= 2) return w;
+      const chars = [...w];
+      const candidates = chars
+        .map((_, i) => i)
+        .filter(
+          (i) => i > 0 && i < chars.length - 1 && /[a-zA-Z]/.test(chars[i])
+        );
+      const hideCount = Math.min(
+        Math.max(1, Math.floor(w.length * 0.45)),
+        candidates.length
+      );
+      const toHide = new Set(
+        [...candidates].sort(() => Math.random() - 0.5).slice(0, hideCount)
+      );
+      return chars.map((c, i) => (toHide.has(i) ? '_' : c)).join('');
+    })
+    .join(' ');
+}
 
 function formatTime(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -51,44 +91,34 @@ export function SessionClient({
 }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
-  const [isFeedback, setIsFeedback] = useState(false);
+  const [phase, setPhase] = useState<'answering' | 'reviewing'>('answering');
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [fillInput, setFillInput] = useState('');
   const [done, setDone] = useState(false);
+  const [lifelinesUsed, setLifelinesUsed] = useState<Lifelines>(LIFELINES_INIT);
+  const [activeHints, setActiveHints] = useState<Lifelines>(LIFELINES_INIT);
+  const [partialAnswer, setPartialAnswer] = useState<string | null>(null);
   const [sessionDuration, setSessionDuration] = useState(0);
+  const [countdown, setCountdown] = useState(ANSWER_SECS);
 
-  // Timing refs — set in effects, read only in callbacks (never during render)
   const sessionStartRef = useRef<number>(0);
   const questionStartRef = useRef<number>(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const advanceRef = useRef<() => void>(() => {});
 
   const currentQ = questions[index];
   const isLast = index === questions.length - 1;
   const progress = (index / questions.length) * 100;
   const currentQType = currentQ?.type;
+  const isFeedback = phase === 'reviewing';
 
-  // Set session start time once on mount
   useEffect(() => {
     sessionStartRef.current = Date.now();
   }, []);
 
-  // Reset question timer each time the question changes
-  useEffect(() => {
-    questionStartRef.current = Date.now();
-  }, [index]);
-
-  // Auto-focus input when a fill_blank question is shown
-  useEffect(() => {
-    if (!done && currentQType === 'fill_blank') {
-      const id = setTimeout(() => inputRef.current?.focus(), 50);
-      return () => clearTimeout(id);
-    }
-  }, [index, done, currentQType]);
-
-  // Advance to the next question or show summary.
-  // Resets all per-question UI state inline so no effect is needed.
   const advance = useCallback(() => {
     if (isLast) {
       setSessionDuration(Date.now() - sessionStartRef.current);
@@ -98,9 +128,75 @@ export function SessionClient({
       setFillInput('');
       setSelectedChoice(null);
       setFeedback(null);
-      setIsFeedback(false);
+      setPhase('answering');
+      setCountdown(ANSWER_SECS);
+      setActiveHints(LIFELINES_INIT);
+      setPartialAnswer(null);
     }
   }, [isLast]);
+
+  const handleUseLifeline = useCallback(
+    (key: LifelineKey) => {
+      setLifelinesUsed((prev) => ({ ...prev, [key]: true }));
+      setActiveHints((prev) => ({ ...prev, [key]: true }));
+      if (key === 'partial') {
+        setPartialAnswer(maskWord((currentQ as FillBlankQuestion).term));
+      }
+    },
+    [currentQ]
+  );
+
+  useEffect(() => {
+    advanceRef.current = advance;
+  }, [advance]);
+
+  // Per-question: start answering countdown
+  useEffect(() => {
+    questionStartRef.current = Date.now();
+    if (done) return;
+    if (countdownRef.current) clearInterval(countdownRef.current);
+
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!);
+          countdownRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+    };
+  }, [index, done]);
+
+  // When countdown hits 0 → advance (both phases)
+  useEffect(() => {
+    if (countdown === 0 && !done) {
+      advanceRef.current();
+    }
+  }, [countdown, done]);
+
+  // Auto-focus input for fill_blank
+  useEffect(() => {
+    if (!done && currentQType === 'fill_blank' && phase === 'answering') {
+      const id = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(id);
+    }
+  }, [index, done, currentQType, phase]);
+
+  const handleNext = useCallback(() => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    advance();
+  }, [advance]);
 
   const handleAnswer = useCallback(
     ({
@@ -117,8 +213,8 @@ export function SessionClient({
       modeVal: 'flashcard' | 'fill_blank';
     }) => {
       const durationMs = Date.now() - questionStartRef.current;
-      setIsFeedback(true);
       setFeedback({ correct, correctAnswer });
+      setPhase('reviewing');
       setAnswers((prev) => [
         ...prev,
         { wordId, term: correctAnswer, correct, userAnswer },
@@ -126,14 +222,26 @@ export function SessionClient({
       logReviewEvent({ wordId, mode: modeVal, correct, durationMs }).catch(
         () => {}
       );
-      setTimeout(advance, correct ? 1200 : 1800);
+      // Switch to 10s review countdown
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      setCountdown(REVIEW_SECS);
+      countdownRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownRef.current!);
+            countdownRef.current = null;
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     },
-    [advance]
+    []
   );
 
   const handleFlashcardChoice = useCallback(
     (choice: string) => {
-      if (isFeedback) return;
+      if (phase !== 'answering') return;
       const q = currentQ as FlashcardQuestion;
       setSelectedChoice(choice);
       handleAnswer({
@@ -144,11 +252,11 @@ export function SessionClient({
         modeVal: 'flashcard',
       });
     },
-    [isFeedback, currentQ, handleAnswer]
+    [phase, currentQ, handleAnswer]
   );
 
   const handleFillSubmit = useCallback(() => {
-    if (isFeedback) return;
+    if (phase !== 'answering') return;
     const q = currentQ as FillBlankQuestion;
     const userAnswer = fillInput.trim();
     if (!userAnswer) return;
@@ -160,14 +268,12 @@ export function SessionClient({
       wordId: q.wordId,
       modeVal: 'fill_blank',
     });
-  }, [isFeedback, currentQ, fillInput, handleAnswer]);
+  }, [phase, currentQ, fillInput, handleAnswer]);
 
-  // Keyboard shortcuts — re-registers whenever handlers change
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const q = currentQ;
       if (!q) return;
-
       if (q.type === 'flashcard') {
         const num = parseInt(e.key, 10);
         if (
@@ -298,7 +404,58 @@ export function SessionClient({
           onInputChange={setFillInput}
           onSubmit={handleFillSubmit}
           inputRef={inputRef as RefObject<HTMLInputElement>}
+          lifelinesUsed={lifelinesUsed}
+          activeHints={activeHints}
+          partialAnswer={partialAnswer}
+          onUseLifeline={handleUseLifeline}
         />
+      )}
+
+      {/* Countdown progress bar */}
+      <div className="h-1 bg-muted rounded-full overflow-hidden">
+        <div
+          className={cn(
+            'h-full rounded-full transition-all duration-1000 ease-linear',
+            isFeedback ? 'bg-primary' : 'bg-muted-foreground/40'
+          )}
+          style={{
+            width: `${(countdown / (isFeedback ? REVIEW_SECS : ANSWER_SECS)) * 100}%`,
+          }}
+        />
+      </div>
+
+      {/* Bottom: keyboard hint + timer / Next button */}
+      {isFeedback ? (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            <span>
+              Next in{' '}
+              <span className="font-mono font-semibold text-primary">
+                {countdown}s
+              </span>
+            </span>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleNext}
+            className="bg-primary hover:bg-primary/90 text-white"
+          >
+            Next <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            {currentQ.type === 'flashcard'
+              ? `Press 1–${(currentQ as FlashcardQuestion).choices.length} to select`
+              : 'Press Enter to submit'}
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            <span className="font-mono">{countdown}s</span>
+          </span>
+        </div>
       )}
     </div>
   );
@@ -345,14 +502,14 @@ function FlashcardView({
           >
             {question.partOfSpeech}
           </Badge>
-          {question.audioUrl && (
+          {isFeedback && question.audioUrl && (
             <AudioButton
               url={question.audioUrl}
               label={`Phát âm ${question.term}`}
             />
           )}
         </div>
-        {question.phonetic && (
+        {isFeedback && question.phonetic && (
           <p className="text-xs text-muted-foreground italic mb-1">
             {question.phonetic}
           </p>
@@ -371,7 +528,7 @@ function FlashcardView({
               'border-border bg-card hover:border-primary/50 hover:bg-primary/5 cursor-pointer';
           } else if (isCorrect) {
             stateClasses =
-              'border-green-500 bg-green-50 text-green-700 cursor-default';
+              'border-green-500 bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400 cursor-default';
           } else if (isSelected) {
             stateClasses =
               'border-destructive bg-destructive/5 text-destructive cursor-default';
@@ -404,17 +561,35 @@ function FlashcardView({
           );
         })}
       </div>
-
-      {!isFeedback && (
-        <p className="text-xs text-center text-muted-foreground">
-          Press 1–{question.choices.length} to select
-        </p>
-      )}
     </div>
   );
 }
 
+const POS_ABBR: Record<string, string> = {
+  noun: 'n',
+  verb: 'v',
+  adjective: 'adj',
+  adverb: 'adv',
+  preposition: 'prep',
+  conjunction: 'conj',
+  pronoun: 'pron',
+  interjection: 'interj',
+  phrase: 'phr',
+  other: '?',
+};
+
 // ── Fill-in-blank sub-component ──────────────────────────────────────────────
+
+const LIFELINE_CONFIG: {
+  key: LifelineKey;
+  label: string;
+  Icon: React.ElementType;
+}[] = [
+  { key: 'definition', label: 'Definition', Icon: BookMarked },
+  { key: 'phonetic', label: 'Phonetic', Icon: Type },
+  { key: 'audio', label: 'Pronunciation', Icon: Volume2 },
+  { key: 'partial', label: 'Reveal', Icon: Eye },
+];
 
 function FillBlankView({
   question,
@@ -424,6 +599,10 @@ function FillBlankView({
   onInputChange,
   onSubmit,
   inputRef,
+  lifelinesUsed,
+  activeHints,
+  partialAnswer,
+  onUseLifeline,
 }: {
   question: FillBlankQuestion;
   isFeedback: boolean;
@@ -432,22 +611,109 @@ function FillBlankView({
   onInputChange: (v: string) => void;
   onSubmit: () => void;
   inputRef: RefObject<HTMLInputElement>;
+  lifelinesUsed: Lifelines;
+  activeHints: Lifelines;
+  partialAnswer: string | null;
+  onUseLifeline: (key: LifelineKey) => void;
 }) {
+  const posHint = POS_ABBR[question.partOfSpeech] ?? question.partOfSpeech;
+
+  const isUnavailable = (key: LifelineKey) =>
+    (key === 'phonetic' && !question.phonetic) ||
+    (key === 'audio' && !question.audioUrl);
+
+  const anyHintActive =
+    activeHints.definition ||
+    activeHints.phonetic ||
+    activeHints.audio ||
+    activeHints.partial;
+
   return (
     <div className="space-y-4">
+      {/* Sentence */}
       <div className="bg-card border border-border rounded-xl px-6 py-6 min-h-32 flex items-center">
         <p className="text-lg leading-relaxed">
           {question.sentence.split('_______').map((part, i, arr) => (
             <span key={i}>
               {part}
               {i < arr.length - 1 && (
-                <span className="inline-block min-w-20 border-b-2 border-primary mx-1 align-bottom" />
+                <span className="inline-flex items-end gap-0.5 mx-1">
+                  <span className="text-xs font-semibold text-primary/70 leading-none mb-0.5">
+                    ({posHint})
+                  </span>
+                  <span className="inline-block min-w-16 border-b-2 border-primary align-bottom" />
+                </span>
               )}
             </span>
           ))}
         </p>
       </div>
 
+      {/* Lifeline buttons */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {LIFELINE_CONFIG.map(({ key, label, Icon }) => {
+          const used = lifelinesUsed[key];
+          const unavailable = isUnavailable(key);
+          const disabled = used || unavailable || isFeedback;
+          return (
+            <button
+              key={key}
+              type="button"
+              disabled={disabled}
+              onClick={() => onUseLifeline(key)}
+              className={cn(
+                'flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg border text-xs font-medium transition-all',
+                disabled
+                  ? 'opacity-40 cursor-not-allowed border-border bg-muted/30 text-muted-foreground'
+                  : 'border-secondary/50 bg-secondary/5 text-secondary hover:bg-secondary/10 cursor-pointer'
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+              {used && (
+                <span className="text-[10px] leading-none opacity-60">
+                  Used
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Hints revealed */}
+      {anyHintActive && (
+        <div className="space-y-1.5 bg-primary/5 border border-primary/20 rounded-lg px-4 py-3">
+          <p className="text-[10px] font-semibold text-primary/60 uppercase tracking-wider mb-2">
+            Hints
+          </p>
+          {activeHints.definition && (
+            <p className="text-sm text-foreground">
+              <span className="font-semibold text-primary">Definition: </span>
+              {question.meaning}
+            </p>
+          )}
+          {activeHints.phonetic && question.phonetic && (
+            <p className="text-sm text-foreground">
+              <span className="font-semibold text-primary">Phonetic: </span>
+              <span className="italic">{question.phonetic}</span>
+            </p>
+          )}
+          {activeHints.audio && question.audioUrl && (
+            <div className="flex items-center gap-2 text-sm text-foreground">
+              <span className="font-semibold text-primary">Pronunciation:</span>
+              <AudioButton url={question.audioUrl} label="Play pronunciation" />
+            </div>
+          )}
+          {activeHints.partial && partialAnswer && (
+            <p className="text-sm text-foreground">
+              <span className="font-semibold text-primary">Letter hint: </span>
+              <span className="font-mono tracking-widest">{partialAnswer}</span>
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Input */}
       <div className="flex gap-2">
         <Input
           ref={inputRef}
@@ -497,12 +763,6 @@ function FillBlankView({
             </>
           )}
         </div>
-      )}
-
-      {!isFeedback && (
-        <p className="text-xs text-center text-muted-foreground">
-          Press Enter to submit
-        </p>
       )}
     </div>
   );

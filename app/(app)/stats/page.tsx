@@ -56,8 +56,6 @@ function ChartCard({
 }
 
 function StrugglingTable({ words }: { words: StatsData['strugglingWords'] }) {
-  if (words.length === 0) return null;
-
   return (
     <div className="bg-card border border-border rounded-xl p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -89,7 +87,7 @@ export default async function StatsPage() {
   const hasReviews = stats.reviewsPerDay.some((d) => d.count > 0);
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-5 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">Statistics</h1>
         <p className="text-muted-foreground mt-1">
@@ -119,32 +117,41 @@ export default async function StatsPage() {
         />
       </div>
 
-      {/* No reviews yet — prompt */}
-      {!hasReviews && (
+      {/* Words added — full width */}
+      <ChartCard title="Words added — last 30 days">
+        <WordsPerDayChart data={stats.wordsPerDay} />
+      </ChartCard>
+
+      {/* Reviews + Accuracy — side by side */}
+      {hasReviews ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ChartCard title="Reviews — last 30 days">
+            <ReviewsPerDayChart data={stats.reviewsPerDay} />
+          </ChartCard>
+          <ChartCard title="Accuracy — last 30 days">
+            <AccuracyPerDayChart data={stats.accuracyPerDay} />
+          </ChartCard>
+        </div>
+      ) : (
         <div className="rounded-xl border border-border bg-muted/40 px-5 py-4 text-sm text-muted-foreground">
           Complete some review sessions to see accuracy and daily activity
           charts.
         </div>
       )}
 
-      {/* Time-series charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ChartCard title="Words added — last 30 days">
-          <WordsPerDayChart data={stats.wordsPerDay} />
-        </ChartCard>
-        <ChartCard title="Reviews — last 30 days">
-          <ReviewsPerDayChart data={stats.reviewsPerDay} />
-        </ChartCard>
-        <ChartCard title="Accuracy — last 30 days">
-          <AccuracyPerDayChart data={stats.accuracyPerDay} />
-        </ChartCard>
+      {/* Category donut + Struggling words */}
+      {stats.strugglingWords.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ChartCard title="Words per category">
+            <CategoryDonutChart data={stats.wordsPerCategory} />
+          </ChartCard>
+          <StrugglingTable words={stats.strugglingWords} />
+        </div>
+      ) : (
         <ChartCard title="Words per category">
           <CategoryDonutChart data={stats.wordsPerCategory} />
         </ChartCard>
-      </div>
-
-      {/* Struggling words */}
-      <StrugglingTable words={stats.strugglingWords} />
+      )}
     </div>
   );
 }

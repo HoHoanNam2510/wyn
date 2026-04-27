@@ -2,10 +2,12 @@
 
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   PieChart,
   Pie,
   Cell,
@@ -17,10 +19,19 @@ import {
 } from 'recharts';
 import type { DayStat, DayAccuracy, CategoryStat } from '@/lib/stats/queries';
 
-const BORDER_COLOR = '#e6e0e2';
+const GRID_COLOR = 'rgba(255,255,255,0.07)';
 const TICK_COLOR = '#9a8488';
 const PRIMARY = '#dc143c';
 const TERTIARY = '#2481a8';
+
+const tooltipStyle = {
+  fontSize: 12,
+  borderRadius: 8,
+  border: '1px solid rgba(255,255,255,0.1)',
+  backgroundColor: '#1c1819',
+  color: '#f4f1f2',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+} as const;
 
 function fmtDay(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
@@ -30,80 +41,70 @@ function fmtDay(iso: string): string {
   });
 }
 
-function dayTickFormatter(value: string, index: number): string {
-  return index % 5 === 0 ? fmtDay(value) : '';
+function weeklyTick(value: string, index: number): string {
+  return index % 7 === 0 ? fmtDay(value) : '';
 }
 
-const sharedAxisProps = {
+const axisProps = {
   tick: { fontSize: 11, fill: TICK_COLOR },
   tickLine: false,
   axisLine: false,
 } as const;
 
-const tooltipStyle = {
-  fontSize: 12,
-  borderRadius: 8,
-  border: `1px solid ${BORDER_COLOR}`,
-  backgroundColor: '#ffffff',
-} as const;
-
 export function WordsPerDayChart({ data }: { data: DayStat[] }) {
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <LineChart
+    <ResponsiveContainer width="100%" height={240}>
+      <AreaChart
         data={data}
-        margin={{ top: 4, right: 8, bottom: 0, left: -20 }}
+        margin={{ top: 8, right: 8, bottom: 0, left: -20 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke={BORDER_COLOR} />
-        <XAxis
-          dataKey="day"
-          tickFormatter={dayTickFormatter}
-          {...sharedAxisProps}
-        />
-        <YAxis allowDecimals={false} {...sharedAxisProps} />
+        <defs>
+          <linearGradient id="wordsGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={PRIMARY} stopOpacity={0.3} />
+            <stop offset="100%" stopColor={PRIMARY} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid stroke={GRID_COLOR} vertical={false} />
+        <XAxis dataKey="day" tickFormatter={weeklyTick} {...axisProps} />
+        <YAxis allowDecimals={false} {...axisProps} />
         <Tooltip
-          labelFormatter={(label) => fmtDay(String(label))}
-          formatter={(value) => [value, 'Words added']}
+          labelFormatter={(l) => fmtDay(String(l))}
+          formatter={(v) => [v, 'Words added']}
           contentStyle={tooltipStyle}
+          cursor={{ stroke: 'rgba(255,255,255,0.12)', strokeWidth: 1 }}
         />
-        <Line
+        <Area
           type="monotone"
           dataKey="count"
           stroke={PRIMARY}
           strokeWidth={2}
+          fill="url(#wordsGrad)"
           dot={false}
-          activeDot={{ r: 4 }}
+          activeDot={{ r: 4, fill: PRIMARY, strokeWidth: 0 }}
         />
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   );
 }
 
 export function ReviewsPerDayChart({ data }: { data: DayStat[] }) {
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke={BORDER_COLOR}
-          vertical={false}
-        />
-        <XAxis
-          dataKey="day"
-          tickFormatter={dayTickFormatter}
-          {...sharedAxisProps}
-        />
-        <YAxis allowDecimals={false} {...sharedAxisProps} />
+    <ResponsiveContainer width="100%" height={180}>
+      <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
+        <CartesianGrid stroke={GRID_COLOR} vertical={false} />
+        <XAxis dataKey="day" tickFormatter={weeklyTick} {...axisProps} />
+        <YAxis allowDecimals={false} {...axisProps} />
         <Tooltip
-          labelFormatter={(label) => fmtDay(String(label))}
-          formatter={(value) => [value, 'Reviews']}
+          labelFormatter={(l) => fmtDay(String(l))}
+          formatter={(v) => [v, 'Reviews']}
           contentStyle={tooltipStyle}
+          cursor={{ fill: 'rgba(255,255,255,0.05)' }}
         />
         <Bar
           dataKey="count"
           fill={PRIMARY}
           radius={[3, 3, 0, 0]}
-          maxBarSize={20}
+          maxBarSize={16}
         />
       </BarChart>
     </ResponsiveContainer>
@@ -112,26 +113,23 @@ export function ReviewsPerDayChart({ data }: { data: DayStat[] }) {
 
 export function AccuracyPerDayChart({ data }: { data: DayAccuracy[] }) {
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height={180}>
       <LineChart
         data={data}
-        margin={{ top: 4, right: 8, bottom: 0, left: -16 }}
+        margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke={BORDER_COLOR} />
-        <XAxis
-          dataKey="day"
-          tickFormatter={dayTickFormatter}
-          {...sharedAxisProps}
-        />
+        <CartesianGrid stroke={GRID_COLOR} vertical={false} />
+        <XAxis dataKey="day" tickFormatter={weeklyTick} {...axisProps} />
         <YAxis
           domain={[0, 100]}
           tickFormatter={(v: number) => `${v}%`}
-          {...sharedAxisProps}
+          {...axisProps}
         />
         <Tooltip
-          labelFormatter={(label) => fmtDay(String(label))}
-          formatter={(value) => [`${value}%`, 'Accuracy']}
+          labelFormatter={(l) => fmtDay(String(l))}
+          formatter={(v) => [`${v}%`, 'Accuracy']}
           contentStyle={tooltipStyle}
+          cursor={{ stroke: 'rgba(255,255,255,0.12)', strokeWidth: 1 }}
         />
         <Line
           type="monotone"
@@ -139,7 +137,7 @@ export function AccuracyPerDayChart({ data }: { data: DayAccuracy[] }) {
           stroke={TERTIARY}
           strokeWidth={2}
           dot={false}
-          activeDot={{ r: 4 }}
+          activeDot={{ r: 4, fill: TERTIARY, strokeWidth: 0 }}
           connectNulls={false}
         />
       </LineChart>
@@ -150,7 +148,7 @@ export function AccuracyPerDayChart({ data }: { data: DayAccuracy[] }) {
 export function CategoryDonutChart({ data }: { data: CategoryStat[] }) {
   if (data.length === 0) {
     return (
-      <div className="h-[200px] flex items-center justify-center">
+      <div className="h-[220px] flex items-center justify-center">
         <p className="text-sm text-muted-foreground">No categories yet</p>
       </div>
     );
@@ -180,7 +178,7 @@ export function CategoryDonutChart({ data }: { data: CategoryStat[] }) {
         <Legend
           iconType="circle"
           iconSize={8}
-          wrapperStyle={{ fontSize: 12 }}
+          wrapperStyle={{ fontSize: 12, color: TICK_COLOR }}
         />
       </PieChart>
     </ResponsiveContainer>
