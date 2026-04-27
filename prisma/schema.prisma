@@ -39,6 +39,7 @@ model User {
   categories      Category[]
   reviewEvents    ReviewEvent[]
   grammarExamples GrammarExample[]
+  grammarReviews  GrammarReviewEvent[]
 }
 
 model Account {
@@ -149,8 +150,9 @@ model GrammarPattern {
   formula   Json
   notes     String?
   order     Int
-  section   GrammarSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  examples  GrammarExample[]
+  section        GrammarSection      @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  examples       GrammarExample[]
+  grammarReviews GrammarReviewEvent[]
 }
 
 model GrammarExample {
@@ -161,4 +163,15 @@ model GrammarExample {
   createdAt DateTime       @default(now())
   pattern   GrammarPattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
   user      User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GrammarReviewEvent {
+  id         String         @id @default(cuid())
+  userId     String
+  patternId  String
+  correct    Boolean
+  reviewedAt DateTime       @default(now())
+  durationMs Int
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pattern    GrammarPattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
 }

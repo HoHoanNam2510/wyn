@@ -140,7 +140,7 @@ export function SessionClient({
       setPartialAnswer(null);
       setSentenceIndices([]);
     }
-  }, [isLast]);
+  }, [isLast, answerSecs]);
 
   const handleUseLifeline = useCallback(
     (key: LifelineKey) => {

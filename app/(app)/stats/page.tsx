@@ -1,5 +1,13 @@
 import { redirect } from 'next/navigation';
-import { BookOpen, Flame, Trophy, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import {
+  BookOpen,
+  Flame,
+  Trophy,
+  AlertTriangle,
+  Zap,
+  Target,
+} from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { fetchStats } from '@/lib/stats/queries';
 import type { StatsData } from '@/lib/stats/queries';
@@ -8,6 +16,7 @@ import {
   ReviewsPerDayChart,
   AccuracyPerDayChart,
   CategoryDonutChart,
+  GrammarSectionAccuracyChart,
 } from './stats-charts';
 
 function HeroCard({
@@ -79,12 +88,48 @@ function StrugglingTable({ words }: { words: StatsData['strugglingWords'] }) {
   );
 }
 
+function GrammarStrugglingTable({
+  patterns,
+}: {
+  patterns: StatsData['grammarStrugglingPatterns'];
+}) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <AlertTriangle className="h-4 w-4 text-destructive" />
+        <p className="text-sm font-semibold">
+          Struggling patterns ({patterns.length})
+        </p>
+      </div>
+      <div className="divide-y divide-border">
+        {patterns.map((p) => (
+          <div key={p.patternId} className="py-2.5 space-y-0.5">
+            <div className="flex items-center gap-3">
+              <span className="flex-1 text-sm font-medium truncate">
+                {p.patternTitle}
+              </span>
+              <span className="text-xs text-muted-foreground shrink-0">
+                {p.totalAttempts} attempts
+              </span>
+              <span className="text-xs font-semibold text-destructive w-10 text-right shrink-0">
+                {p.accuracy}%
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">{p.sectionTitle}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function StatsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/sign-in');
 
   const stats = await fetchStats(session.user.id);
   const hasReviews = stats.reviewsPerDay.some((d) => d.count > 0);
+  const hasGrammarData = stats.grammarTotalAnswers > 0;
 
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
@@ -152,6 +197,75 @@ export default async function StatsPage() {
           <CategoryDonutChart data={stats.wordsPerCategory} />
         </ChartCard>
       )}
+
+      {/* ── Grammar Quiz section ─────────────────────────────────────── */}
+      <div className="pt-2 border-t border-border">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold">Grammar Quiz</h2>
+            <p className="text-sm text-muted-foreground">
+              Pattern identification accuracy
+            </p>
+          </div>
+          <Link
+            href="/grammar/quiz"
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            Take a quiz →
+          </Link>
+        </div>
+
+        {hasGrammarData ? (
+          <div className="space-y-4">
+            {/* Grammar hero cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <HeroCard
+                label="Quiz answers total"
+                value={stats.grammarTotalAnswers}
+                icon={<Zap className="h-5 w-5" />}
+                accent
+              />
+              <HeroCard
+                label="Overall grammar accuracy"
+                value={
+                  stats.grammarOverallAccuracy !== null
+                    ? `${stats.grammarOverallAccuracy}%`
+                    : '—'
+                }
+                icon={<Target className="h-5 w-5" />}
+                accent={
+                  stats.grammarOverallAccuracy !== null &&
+                  stats.grammarOverallAccuracy >= 70
+                }
+              />
+            </div>
+
+            {/* Accuracy per section + struggling patterns */}
+            {stats.grammarStrugglingPatterns.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ChartCard title="Accuracy by section">
+                  <GrammarSectionAccuracyChart
+                    data={stats.grammarAccuracyPerSection}
+                  />
+                </ChartCard>
+                <GrammarStrugglingTable
+                  patterns={stats.grammarStrugglingPatterns}
+                />
+              </div>
+            ) : (
+              <ChartCard title="Accuracy by section">
+                <GrammarSectionAccuracyChart
+                  data={stats.grammarAccuracyPerSection}
+                />
+              </ChartCard>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border bg-muted/40 px-5 py-4 text-sm text-muted-foreground">
+            Complete some grammar quiz sessions to see your pattern accuracy.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

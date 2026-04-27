@@ -10,6 +10,19 @@ export type WordStruggleStat = {
 };
 export type CategoryStat = { name: string; color: string; count: number };
 
+export type GrammarSectionAccuracyStat = {
+  sectionTitle: string;
+  accuracy: number;
+  totalAttempts: number;
+};
+export type GrammarPatternStruggleStat = {
+  patternId: string;
+  patternTitle: string;
+  sectionTitle: string;
+  accuracy: number;
+  totalAttempts: number;
+};
+
 export type StatsData = {
   wordsPerDay: DayStat[];
   reviewsPerDay: DayStat[];
@@ -19,6 +32,10 @@ export type StatsData = {
   masteredWords: number;
   strugglingWords: WordStruggleStat[];
   wordsPerCategory: CategoryStat[];
+  grammarTotalAnswers: number;
+  grammarOverallAccuracy: number | null;
+  grammarAccuracyPerSection: GrammarSectionAccuracyStat[];
+  grammarStrugglingPatterns: GrammarPatternStruggleStat[];
 };
 
 function last30DayKeys(): string[] {
@@ -67,6 +84,9 @@ export async function fetchStats(userId: string): Promise<StatsData> {
     categories,
     totalWords,
     uncategorizedCount,
+    grammarOverallRaw,
+    grammarPerSectionRaw,
+    grammarStrugglingRaw,
   ] = await Promise.all([
     db.$queryRaw<{ day: string; count: number }[]>`
       SELECT
@@ -140,6 +160,55 @@ export async function fetchStats(userId: string): Promise<StatsData> {
     }),
     db.word.count({ where: { userId } }),
     db.word.count({ where: { userId, categories: { none: {} } } }),
+    db.$queryRaw<{ totalanswers: number; overallaccuracy: number | null }[]>`
+      SELECT
+        COUNT(*)::int AS totalanswers,
+        CASE WHEN COUNT(*) > 0
+          THEN ROUND(AVG(CASE WHEN correct THEN 100.0 ELSE 0.0 END))::int
+          ELSE NULL
+        END AS overallaccuracy
+      FROM "GrammarReviewEvent"
+      WHERE "userId" = ${userId}
+    `,
+    db.$queryRaw<
+      { sectiontitle: string; accuracy: number; totalattempts: number }[]
+    >`
+      SELECT
+        gs.title AS sectiontitle,
+        ROUND(AVG(CASE WHEN gre.correct THEN 100.0 ELSE 0.0 END))::int AS accuracy,
+        COUNT(*)::int AS totalattempts
+      FROM "GrammarReviewEvent" gre
+      JOIN "GrammarPattern" gp ON gp.id = gre."patternId"
+      JOIN "GrammarSection" gs ON gs.id = gp."sectionId"
+      WHERE gre."userId" = ${userId}
+      GROUP BY gs.id, gs.title, gs.order
+      ORDER BY gs.order
+    `,
+    db.$queryRaw<
+      {
+        patternid: string;
+        patterntitle: string;
+        sectiontitle: string;
+        accuracy: number;
+        totalattempts: number;
+      }[]
+    >`
+      SELECT
+        gp.id AS patternid,
+        gp.title AS patterntitle,
+        gs.title AS sectiontitle,
+        ROUND(AVG(CASE WHEN gre.correct THEN 100.0 ELSE 0.0 END))::int AS accuracy,
+        COUNT(*)::int AS totalattempts
+      FROM "GrammarReviewEvent" gre
+      JOIN "GrammarPattern" gp ON gp.id = gre."patternId"
+      JOIN "GrammarSection" gs ON gs.id = gp."sectionId"
+      WHERE gre."userId" = ${userId}
+      GROUP BY gp.id, gp.title, gs.title
+      HAVING COUNT(*) >= 3
+         AND AVG(CASE WHEN gre.correct THEN 1.0 ELSE 0.0 END) < 0.5
+      ORDER BY AVG(CASE WHEN gre.correct THEN 1.0 ELSE 0.0 END) ASC
+      LIMIT 5
+    `,
   ]);
 
   const wordsMap = new Map(wordsRaw.map((r) => [r.day, r.count]));
@@ -154,6 +223,8 @@ export async function fetchStats(userId: string): Promise<StatsData> {
       ? [{ name: 'Uncategorized', color: '#9a8488', count: uncategorizedCount }]
       : []),
   ];
+
+  const grammarOverall = grammarOverallRaw[0];
 
   return {
     wordsPerDay: days.map((day) => ({ day, count: wordsMap.get(day) ?? 0 })),
@@ -175,5 +246,19 @@ export async function fetchStats(userId: string): Promise<StatsData> {
       totalReviews: r.totalreviews,
     })),
     wordsPerCategory,
+    grammarTotalAnswers: grammarOverall?.totalanswers ?? 0,
+    grammarOverallAccuracy: grammarOverall?.overallaccuracy ?? null,
+    grammarAccuracyPerSection: grammarPerSectionRaw.map((r) => ({
+      sectionTitle: r.sectiontitle,
+      accuracy: r.accuracy,
+      totalAttempts: r.totalattempts,
+    })),
+    grammarStrugglingPatterns: grammarStrugglingRaw.map((r) => ({
+      patternId: r.patternid,
+      patternTitle: r.patterntitle,
+      sectionTitle: r.sectiontitle,
+      accuracy: r.accuracy,
+      totalAttempts: r.totalattempts,
+    })),
   };
 }

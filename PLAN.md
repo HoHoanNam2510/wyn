@@ -336,7 +336,7 @@ model GrammarExample {
 
 ## Phase 7 — Grammar Pattern Quiz
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 **Prerequisite:** Phase 6 complete (needs seeded GrammarPattern + GrammarExample data)
 
 **Goal:** A dedicated grammar quiz mode — separate from the vocabulary review flow. Show a sentence from `GrammarExample`, ask the user to identify which grammar pattern it demonstrates (MC format, 4 choices). Logs results to a separate `GrammarReviewEvent` table to keep the word-based `ReviewEvent` schema clean.
@@ -379,17 +379,17 @@ model GrammarReviewEvent {
 
 ### Files to Create / Modify
 
-| File | Change |
-|------|--------|
-| `prisma/schema.prisma` | Add `GrammarReviewEvent` model + relations to User and GrammarPattern |
-| `prisma/migrations/` | Run `npx prisma migrate dev --name add_grammar_review_event` |
-| `lib/schemas/grammarQuiz.ts` | New — Zod schema for setup params (sectionId, count) |
-| `lib/grammarQuiz/pickQuestions.ts` | New — pick N examples + generate 3 distractors per question |
-| `app/actions/grammarQuiz.ts` | New — `logGrammarReviewEvent` server action |
-| `app/(app)/grammar/quiz/page.tsx` | New — RSC setup page (fetch sections for dropdown) |
-| `app/(app)/grammar/quiz/setup-client.tsx` | New — client: section select + count select + Start button |
-| `app/(app)/grammar/quiz/session/page.tsx` | New — RSC: pick questions + pass to session client |
-| `app/(app)/grammar/quiz/session/session-client.tsx` | New — client: quiz UI (MC cards, progress bar, summary) |
+| File                                                | Change                                                                |
+| --------------------------------------------------- | --------------------------------------------------------------------- |
+| `prisma/schema.prisma`                              | Add `GrammarReviewEvent` model + relations to User and GrammarPattern |
+| `prisma/migrations/`                                | Run `npx prisma migrate dev --name add_grammar_review_event`          |
+| `lib/schemas/grammarQuiz.ts`                        | New — Zod schema for setup params (sectionId, count)                  |
+| `lib/grammarQuiz/pickQuestions.ts`                  | New — pick N examples + generate 3 distractors per question           |
+| `app/actions/grammarQuiz.ts`                        | New — `logGrammarReviewEvent` server action                           |
+| `app/(app)/grammar/quiz/page.tsx`                   | New — RSC setup page (fetch sections for dropdown)                    |
+| `app/(app)/grammar/quiz/setup-client.tsx`           | New — client: section select + count select + Start button            |
+| `app/(app)/grammar/quiz/session/page.tsx`           | New — RSC: pick questions + pass to session client                    |
+| `app/(app)/grammar/quiz/session/session-client.tsx` | New — client: quiz UI (MC cards, progress bar, summary)               |
 
 ---
 

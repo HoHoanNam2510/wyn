@@ -17,7 +17,12 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import type { DayStat, DayAccuracy, CategoryStat } from '@/lib/stats/queries';
+import type {
+  DayStat,
+  DayAccuracy,
+  CategoryStat,
+  GrammarSectionAccuracyStat,
+} from '@/lib/stats/queries';
 
 const GRID_COLOR = 'rgba(255,255,255,0.07)';
 const TICK_COLOR = '#9a8488';
@@ -141,6 +146,58 @@ export function AccuracyPerDayChart({ data }: { data: DayAccuracy[] }) {
           connectNulls={false}
         />
       </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function GrammarSectionAccuracyChart({
+  data,
+}: {
+  data: GrammarSectionAccuracyStat[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(160, data.length * 36)}>
+      <BarChart
+        layout="vertical"
+        data={data}
+        margin={{ top: 4, right: 40, bottom: 0, left: 4 }}
+      >
+        <CartesianGrid stroke={GRID_COLOR} horizontal={false} />
+        <XAxis
+          type="number"
+          domain={[0, 100]}
+          tickFormatter={(v: number) => `${v}%`}
+          {...axisProps}
+        />
+        <YAxis
+          type="category"
+          dataKey="sectionTitle"
+          width={160}
+          tick={{ fontSize: 11, fill: TICK_COLOR }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <Tooltip
+          formatter={(v, _name, props) => [
+            `${v}% (${props.payload.totalAttempts} attempts)`,
+            'Accuracy',
+          ]}
+          contentStyle={tooltipStyle}
+          cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+        />
+        <Bar
+          dataKey="accuracy"
+          fill={TERTIARY}
+          radius={[0, 3, 3, 0]}
+          maxBarSize={14}
+          label={{
+            position: 'right',
+            fontSize: 11,
+            fill: TICK_COLOR,
+            formatter: (v: unknown) => `${v}%`,
+          }}
+        />
+      </BarChart>
     </ResponsiveContainer>
   );
 }
