@@ -23,20 +23,22 @@ enum PartOfSpeech {
 enum ReviewMode {
   flashcard
   fill_blank
+  sentence_build
 }
 
 model User {
-  id             String        @id @default(cuid())
-  email          String        @unique
-  emailVerified  DateTime?
-  name           String?
-  image          String?
-  createdAt      DateTime      @default(now())
-  accounts     Account[]
-  sessions     Session[]
-  words        Word[]
-  categories   Category[]
-  reviewEvents ReviewEvent[]
+  id              String           @id @default(cuid())
+  email           String           @unique
+  emailVerified   DateTime?
+  name            String?
+  image           String?
+  createdAt       DateTime         @default(now())
+  accounts        Account[]
+  sessions        Session[]
+  words           Word[]
+  categories      Category[]
+  reviewEvents    ReviewEvent[]
+  grammarExamples GrammarExample[]
 }
 
 model Account {
@@ -131,4 +133,32 @@ model ReviewEvent {
   durationMs Int
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   word       Word       @relation(fields: [wordId], references: [id], onDelete: Cascade)
+}
+
+model GrammarSection {
+  id       String           @id @default(cuid())
+  title    String
+  order    Int
+  patterns GrammarPattern[]
+}
+
+model GrammarPattern {
+  id        String           @id @default(cuid())
+  sectionId String
+  title     String
+  formula   Json
+  notes     String?
+  order     Int
+  section   GrammarSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  examples  GrammarExample[]
+}
+
+model GrammarExample {
+  id        String         @id @default(cuid())
+  patternId String
+  userId    String?
+  sentence  String
+  createdAt DateTime       @default(now())
+  pattern   GrammarPattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+  user      User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

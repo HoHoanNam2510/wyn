@@ -32,13 +32,17 @@ Claude is a **co-developer**, NOT an assistant that blindly follows orders. The 
 ## Data Model (Prisma schema summary)
 
 ```
-User          → id, email, name, image, createdAt
-Word          → id, userId (FK), term, imageUrl (Unsplash, optional), createdAt, updatedAt
-Context       → id, wordId (FK), partOfSpeech (enum), phonetic, audioUrl, meaning (text), order (int)
-Example       → id, contextId (FK), text
-Category      → id, userId (FK), name, color
-WordCategory  → wordId + categoryId (composite PK — join table for M:N)
-ReviewEvent   → id, userId, wordId, mode (flashcard | fill_blank | sentence_build), correct (bool), reviewedAt, durationMs
+User                → id, email, name, image, createdAt
+Word                → id, userId (FK), term, imageUrl (Unsplash, optional), createdAt, updatedAt
+Context             → id, wordId (FK), partOfSpeech (enum), phonetic, audioUrl, meaning (text), order (int)
+Example             → id, contextId (FK), text
+Category            → id, userId (FK), name, color
+WordCategory        → wordId + categoryId (composite PK — join table for M:N)
+ReviewEvent         → id, userId, wordId, mode (flashcard | fill_blank | sentence_build), correct (bool), reviewedAt, durationMs
+GrammarSection      → id, title, order
+GrammarPattern      → id, sectionId (FK), title, formula (Json = FormulaChunk[]), notes, order
+GrammarExample      → id, patternId (FK), userId (FK, nullable — null = seeded), sentence, createdAt
+GrammarReviewEvent  → id, userId (FK), patternId (FK), correct (bool), reviewedAt, durationMs  [Phase 7 — not yet added]
 ```
 
 **"ALL" category**: Virtual — no DB row. Means "no category filter applied." Do NOT create a real ALL category in the DB.
@@ -51,7 +55,9 @@ ReviewEvent   → id, userId, wordId, mode (flashcard | fill_blank | sentence_bu
 - [x] **Phase 2** — Review modes (Flashcard MC + Fill-in-blank) + ReviewEvent logging
 - [x] **Phase 3** — Statistics dashboard
 - [x] **Phase 4** — Polish (dark mode, audio playback, loading skeletons, mobile sidebar, word detail page, sort dropdown, LCP fixes)
-- [ ] **Phase 5** — Sentence Builder review mode (word-order grammar practice, Duolingo-style chip UI, DB migration for new ReviewMode enum value)
+- [x] **Phase 5** — Sentence Builder review mode (word-order grammar practice, Duolingo-style chip UI, DB migration for new ReviewMode enum value)
+- [x] **Phase 6** — Grammar reference page (seeded patterns per section, chip/badge formula display, user-added examples per pattern)
+- [ ] **Phase 7** — Grammar Pattern Quiz (`/grammar/quiz`): identify-the-pattern MC mode, separate `GrammarReviewEvent` table, section filter + count setup, summary screen
 
 Update with `[x]` when a phase is complete.
 

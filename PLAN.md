@@ -193,7 +193,7 @@ app/(app)/*/loading.tsx                  ← skeleton loading for all main pages
 
 ## Phase 5 — Sentence Builder Mode
 
-**Status:** `[ ]` In progress  
+**Status:** `[x]` Complete  
 **Prerequisite:** Phase 4 complete
 
 **Goal:** Add a third review mode focused on grammar and sentence structure, not just vocabulary recall. Words from an example sentence are shuffled into chips; the user clicks them back into the correct order (Duolingo-style).
@@ -240,6 +240,156 @@ type SentenceBuildQuestion = {
 | `app/(app)/review/session/page.tsx`           | Accept and validate `sentence_build` mode param            |
 | `app/(app)/review/setup-client.tsx`           | Add third mode button                                      |
 | `app/(app)/review/session/session-client.tsx` | Add `SentenceBuildView` component + chip state             |
+
+---
+
+## Phase 6 — Grammar Reference Page
+
+**Status:** `[x]` Complete  
+**Prerequisite:** Phase 5 complete
+
+**Goal:** Add a dedicated Grammar section with seeded reference patterns organized by section. Users can read formulas with color-coded chip display and add their own example sentences to any pattern.
+
+### Design Decisions
+
+- Grammar patterns are **globally seeded** (not per-user) — content is stable reference material
+- Users can **add/delete their own examples** for any pattern; cannot modify patterns themselves
+- Formulas stored as `Json` (`FormulaChunk[]`) — each chunk has `text` and `type` for color rendering
+- Formula types and badge colors:
+  - `subject` → teal (tertiary)
+  - `auxiliary` → crimson (primary)
+  - `verb` → amber (secondary)
+  - `object` → neutral
+  - `connector` → plain text (no badge)
+  - `note` → italic muted text (no badge)
+
+### Content Scope (~51 patterns across 12 sections)
+
+1. Present Tenses (4) — Simple, Continuous, Perfect, Perfect Continuous
+2. Past Tenses (4)
+3. Future Forms (5) — will, be going to, Present Continuous, Future Continuous, Future Perfect
+4. Conditional Sentences (5) — Type 0, 1, 2, 3, Mixed
+5. Passive Voice (5) — across tenses + modal
+6. Modal Verbs (8) — can/could, may/might, must/have to, should, will/would, shall, need to, used to
+7. Reported Speech (4) — statements, yes/no questions, wh- questions, commands
+8. Comparatives & Superlatives (3)
+9. Questions (4) — Yes/No, Wh-, Tag, Indirect
+10. Gerunds & Infinitives (3)
+11. Relative Clauses (3) — defining, non-defining, reduced
+12. Articles (3) — a/an, the, zero article
+
+### Data Model
+
+```prisma
+model GrammarSection {
+  id       String           @id @default(cuid())
+  title    String
+  order    Int
+  patterns GrammarPattern[]
+}
+
+model GrammarPattern {
+  id        String           @id @default(cuid())
+  sectionId String
+  section   GrammarSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title     String
+  formula   Json             // FormulaChunk[]
+  notes     String?
+  order     Int
+  examples  GrammarExample[]
+}
+
+model GrammarExample {
+  id        String         @id @default(cuid())
+  patternId String
+  pattern   GrammarPattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+  userId    String?        // null = system-seeded
+  user      User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentence  String
+  createdAt DateTime       @default(now())
+}
+```
+
+### Routes
+
+```
+/grammar                  → All sections + pattern cards (accordion UI)
+/grammar/[patternId]      → Pattern detail: formula chips, notes, examples, add form
+```
+
+### Files to Create / Modify
+
+| File                                                | Change                                                           |
+| --------------------------------------------------- | ---------------------------------------------------------------- |
+| `prisma/schema.prisma`                              | Add 3 grammar models + `grammarExamples` relation to User        |
+| `prisma/seed.ts`                                    | New — seed all 12 sections + ~51 patterns + system examples      |
+| `lib/schemas/grammar.ts`                            | New — Zod schema for user example input                          |
+| `app/actions/grammar.ts`                            | New — `addGrammarExample`, `deleteGrammarExample` server actions |
+| `components/grammar/formula-display.tsx`            | New — render formula as colored chip badges                      |
+| `app/(app)/grammar/page.tsx`                        | New — RSC list page with shadcn Accordion per section            |
+| `app/(app)/grammar/[patternId]/page.tsx`            | New — RSC detail page                                            |
+| `app/(app)/grammar/[patternId]/examples-client.tsx` | New — client add/delete form                                     |
+| `components/layout/sidebar.tsx`                     | Add Grammar nav item (BookMarked icon)                           |
+| `CLAUDE.md`                                         | Mark Phase 6 complete when done                                  |
+
+---
+
+## Phase 7 — Grammar Pattern Quiz
+
+**Status:** `[ ]` Not started
+**Prerequisite:** Phase 6 complete (needs seeded GrammarPattern + GrammarExample data)
+
+**Goal:** A dedicated grammar quiz mode — separate from the vocabulary review flow. Show a sentence from `GrammarExample`, ask the user to identify which grammar pattern it demonstrates (MC format, 4 choices). Logs results to a separate `GrammarReviewEvent` table to keep the word-based `ReviewEvent` schema clean.
+
+### How it works
+
+1. Setup page (`/grammar/quiz`): choose section (or All) + number of questions (10 / 20 / all)
+2. Quiz screen: show a `GrammarExample.sentence` → 4 pattern title choices → click → reveal correct/wrong → next
+3. Summary screen: score, time, list of wrong answers with the correct pattern name + formula
+
+### Distractor selection
+
+- 3 distractors drawn randomly from patterns **outside the correct pattern's section** (if possible), to avoid same-section ambiguity
+- Fall back to any other pattern if not enough cross-section candidates
+
+### Data Model
+
+```prisma
+model GrammarReviewEvent {
+  id         String         @id @default(cuid())
+  userId     String
+  patternId  String
+  correct    Boolean
+  reviewedAt DateTime       @default(now())
+  durationMs Int
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pattern    GrammarPattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+}
+```
+
+`User` model gains: `grammarReviews GrammarReviewEvent[]`
+`GrammarPattern` model gains: `reviews GrammarReviewEvent[]`
+
+### Routes
+
+```
+/grammar/quiz              → Setup: choose section + count
+/grammar/quiz/session      → Quiz session (client component, same shell as vocabulary review)
+```
+
+### Files to Create / Modify
+
+| File | Change |
+|------|--------|
+| `prisma/schema.prisma` | Add `GrammarReviewEvent` model + relations to User and GrammarPattern |
+| `prisma/migrations/` | Run `npx prisma migrate dev --name add_grammar_review_event` |
+| `lib/schemas/grammarQuiz.ts` | New — Zod schema for setup params (sectionId, count) |
+| `lib/grammarQuiz/pickQuestions.ts` | New — pick N examples + generate 3 distractors per question |
+| `app/actions/grammarQuiz.ts` | New — `logGrammarReviewEvent` server action |
+| `app/(app)/grammar/quiz/page.tsx` | New — RSC setup page (fetch sections for dropdown) |
+| `app/(app)/grammar/quiz/setup-client.tsx` | New — client: section select + count select + Start button |
+| `app/(app)/grammar/quiz/session/page.tsx` | New — RSC: pick questions + pass to session client |
+| `app/(app)/grammar/quiz/session/session-client.tsx` | New — client: quiz UI (MC cards, progress bar, summary) |
 
 ---
 
