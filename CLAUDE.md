@@ -63,7 +63,7 @@ IdiomReviewEvent    → id, userId (FK), idiomId (FK), correct (bool), reviewedA
 - [x] **Phase 6** — Grammar reference page (seeded patterns per section, chip/badge formula display, user-added examples per pattern)
 - [x] **Phase 7** — Grammar Pattern Quiz (`/grammar/quiz`): identify-the-pattern MC mode, separate `GrammarReviewEvent` table, section filter + count setup, summary screen
 - [x] **Phase 8** — Text Scanner (`/text-scanner`): paste any English text → highlight mastered/learning/unknown words → click unknown to add; no new DB table, client-side matching against server-fetched word map
-- [ ] **Phase 9** — Idioms & Phrases (`/idioms`): seeded multi-word expressions by category, user-added examples, quiz mode (identify-the-idiom MC); 4 new Prisma models (IdiomCategory, Idiom, IdiomExample, IdiomReviewEvent)
+- [x] **Phase 9** — Idioms & Phrases (`/idioms`): seeded multi-word expressions by category, user-added examples, quiz mode (identify-the-idiom MC); 4 new Prisma models (IdiomCategory, Idiom, IdiomExample, IdiomReviewEvent)
 
 Update with `[x]` when a phase is complete.
 

@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   BookMarked,
   ScanText,
+  Lightbulb,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,7 @@ const navItems = [
   { href: '/words', label: 'Words', icon: BookOpen },
   { href: '/categories', label: 'Categories', icon: FolderOpen },
   { href: '/grammar', label: 'Grammar', icon: BookMarked },
+  { href: '/idioms', label: 'Idioms', icon: Lightbulb },
   { href: '/text-scanner', label: 'Text Scanner', icon: ScanText },
   { href: '/review', label: 'Review', icon: RotateCcw },
   { href: '/stats', label: 'Stats', icon: BarChart3 },

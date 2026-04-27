@@ -27,12 +27,12 @@ enum ReviewMode {
 }
 
 model User {
-  id              String           @id @default(cuid())
-  email           String           @unique
+  id              String               @id @default(cuid())
+  email           String               @unique
   emailVerified   DateTime?
   name            String?
   image           String?
-  createdAt       DateTime         @default(now())
+  createdAt       DateTime             @default(now())
   accounts        Account[]
   sessions        Session[]
   words           Word[]
@@ -40,6 +40,8 @@ model User {
   reviewEvents    ReviewEvent[]
   grammarExamples GrammarExample[]
   grammarReviews  GrammarReviewEvent[]
+  idiomExamples   IdiomExample[]
+  idiomReviews    IdiomReviewEvent[]
 }
 
 model Account {
@@ -174,4 +176,45 @@ model GrammarReviewEvent {
   durationMs Int
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   pattern    GrammarPattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+}
+
+model IdiomCategory {
+  id     String  @id @default(cuid())
+  title  String
+  order  Int
+  idioms Idiom[]
+}
+
+model Idiom {
+  id          String           @id @default(cuid())
+  categoryId  String
+  phrase      String
+  explanation String
+  register    String?
+  notes       String?
+  order       Int
+  category    IdiomCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  examples    IdiomExample[]
+  idiomReviews IdiomReviewEvent[]
+}
+
+model IdiomExample {
+  id        String   @id @default(cuid())
+  idiomId   String
+  userId    String?
+  sentence  String
+  createdAt DateTime @default(now())
+  idiom     Idiom    @relation(fields: [idiomId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model IdiomReviewEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  idiomId    String
+  correct    Boolean
+  reviewedAt DateTime @default(now())
+  durationMs Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idiom      Idiom    @relation(fields: [idiomId], references: [id], onDelete: Cascade)
 }

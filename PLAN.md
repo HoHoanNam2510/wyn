@@ -428,7 +428,7 @@ components/layout/sidebar.tsx             ← Add Text Scanner nav item (ScanTex
 
 ## Phase 9 — Idioms & Phrases
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 **Prerequisite:** Phase 8 complete
 
 **Goal:** Third content section (alongside Words and Grammar) for multi-word expressions. Seeded content organized by category, user-added examples per idiom, and a quiz mode mirroring the Grammar Quiz.

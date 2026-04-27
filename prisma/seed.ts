@@ -1139,11 +1139,706 @@ const sections: SectionInput[] = [
   },
 ];
 
+// ─── Idiom seed data ──────────────────────────────────────────────────────────
+
+type IdiomInput = {
+  phrase: string;
+  explanation: string;
+  register?: string;
+  notes?: string;
+  order: number;
+  examples: string[];
+};
+
+type IdiomCategoryInput = {
+  title: string;
+  order: number;
+  idioms: IdiomInput[];
+};
+
+const idiomCategories: IdiomCategoryInput[] = [
+  {
+    title: 'Social Interaction',
+    order: 1,
+    idioms: [
+      {
+        phrase: 'break the ice',
+        explanation:
+          'To do or say something to relieve tension or awkwardness in a social situation.',
+        register: 'neutral',
+        order: 1,
+        examples: [
+          'He told a funny story to break the ice at the party.',
+          'The team-building activity was designed to break the ice among new employees.',
+          'She broke the ice by complimenting his shirt.',
+        ],
+      },
+      {
+        phrase: 'read the room',
+        explanation:
+          'To understand and respond appropriately to the mood or atmosphere of a situation.',
+        register: 'informal',
+        order: 2,
+        examples: [
+          'He kept making jokes during the serious meeting — he really needs to read the room.',
+          'She read the room and decided not to bring up the bad news.',
+          'A good presenter knows how to read the room and adjust their style.',
+        ],
+      },
+      {
+        phrase: 'hit it off',
+        explanation:
+          'To immediately like someone and begin a friendly relationship.',
+        register: 'informal',
+        order: 3,
+        examples: [
+          'We hit it off immediately at the conference.',
+          'She and her new colleague really hit it off.',
+          'They hit it off so well that they ended up talking for hours.',
+        ],
+      },
+      {
+        phrase: 'clear the air',
+        explanation:
+          'To talk openly about a problem in order to reduce tension or resolve a misunderstanding.',
+        register: 'neutral',
+        order: 4,
+        examples: [
+          'We need to have a meeting to clear the air about what happened.',
+          'The apology helped to clear the air between the two colleagues.',
+          "Let's clear the air before this misunderstanding gets worse.",
+        ],
+      },
+      {
+        phrase: 'go out of your way',
+        explanation: 'To make a special effort to do something for someone.',
+        register: 'neutral',
+        order: 5,
+        examples: [
+          'She went out of her way to make the guests feel welcome.',
+          'He went out of his way to help me find the information I needed.',
+          'They really went out of their way to accommodate our requests.',
+        ],
+      },
+      {
+        phrase: 'small talk',
+        explanation:
+          'Light, casual conversation about unimportant topics, especially with people you do not know well.',
+        register: 'neutral',
+        order: 6,
+        examples: [
+          'She is not very good at small talk at parties.',
+          'They made small talk while waiting for the meeting to start.',
+          'He found small talk exhausting and preferred meaningful conversations.',
+        ],
+      },
+      {
+        phrase: 'bend over backwards',
+        explanation: 'To try very hard to help someone or to do something.',
+        register: 'informal',
+        order: 7,
+        examples: [
+          'The hotel staff bent over backwards to make our stay perfect.',
+          'She bent over backwards to finish the project on time.',
+          'We bent over backwards to accommodate every client request.',
+        ],
+      },
+      {
+        phrase: "keep someone at arm's length",
+        explanation: 'To avoid becoming too friendly or involved with someone.',
+        register: 'neutral',
+        order: 8,
+        examples: [
+          "He kept his new colleagues at arm's length until he got to know them better.",
+          "She tended to keep people at arm's length after being hurt.",
+          "The company kept its suppliers at arm's length to maintain objectivity.",
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Time & Deadlines',
+    order: 2,
+    idioms: [
+      {
+        phrase: 'in the nick of time',
+        explanation:
+          'Just in time; at the last possible moment before something happens.',
+        register: 'neutral',
+        order: 1,
+        examples: [
+          'We caught the train in the nick of time.',
+          'The ambulance arrived in the nick of time to save his life.',
+          'She submitted her application in the nick of time before the deadline.',
+        ],
+      },
+      {
+        phrase: 'once in a blue moon',
+        explanation: 'Very rarely; not very often at all.',
+        register: 'informal',
+        order: 2,
+        examples: [
+          'He only visits his parents once in a blue moon.',
+          'Once in a blue moon, you find a truly outstanding restaurant.',
+          'She writes to me once in a blue moon, so I was surprised to hear from her.',
+        ],
+      },
+      {
+        phrase: 'around the clock',
+        explanation:
+          'For all 24 hours of the day; continuously without stopping.',
+        register: 'neutral',
+        order: 3,
+        examples: [
+          'The hospital staff worked around the clock during the emergency.',
+          'They monitored the system around the clock to detect any issues.',
+          'He studied around the clock before his final exams.',
+        ],
+      },
+      {
+        phrase: 'at the eleventh hour',
+        explanation:
+          'At the last possible moment, especially before a deadline.',
+        register: 'neutral',
+        order: 4,
+        examples: [
+          'The deal was agreed at the eleventh hour, saving the company.',
+          'She finished her essay at the eleventh hour.',
+          'The rescue team arrived at the eleventh hour to pull them out.',
+        ],
+      },
+      {
+        phrase: 'on borrowed time',
+        explanation:
+          'In a situation that cannot last much longer; living or existing beyond the expected time.',
+        register: 'neutral',
+        order: 5,
+        examples: [
+          'The old factory was on borrowed time and eventually had to close.',
+          'After that warning, his career was on borrowed time.',
+          'With those outdated systems, the company is living on borrowed time.',
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Success & Achievement',
+    order: 3,
+    idioms: [
+      {
+        phrase: 'hit the nail on the head',
+        explanation:
+          'To describe exactly what is causing a situation or problem; to be precisely correct.',
+        register: 'neutral',
+        order: 1,
+        examples: [
+          "You hit the nail on the head — that's exactly what we need to fix.",
+          'Her analysis hit the nail on the head.',
+          'The report hit the nail on the head when it identified the communication gap.',
+        ],
+      },
+      {
+        phrase: 'go the extra mile',
+        explanation: 'To do more than is expected or required.',
+        register: 'neutral',
+        order: 2,
+        examples: [
+          'She always goes the extra mile for her clients.',
+          'Going the extra mile is what separates good service from great service.',
+          'He went the extra mile by preparing a detailed handover document.',
+        ],
+      },
+      {
+        phrase: 'raise the bar',
+        explanation: 'To set a higher standard of quality or performance.',
+        register: 'neutral',
+        order: 3,
+        examples: [
+          'Their new product really raised the bar for the entire industry.',
+          'We need to raise the bar on customer service.',
+          'Her performance raised the bar for all future presentations.',
+        ],
+      },
+      {
+        phrase: 'reap the rewards',
+        explanation: 'To enjoy the benefits of hard work or a good decision.',
+        register: 'neutral',
+        order: 4,
+        examples: [
+          'After years of training, she is now reaping the rewards.',
+          'Investors who stayed calm during the dip are now reaping the rewards.',
+          'He reaped the rewards of his consistent effort.',
+        ],
+      },
+      {
+        phrase: 'on top of the world',
+        explanation: 'Feeling extremely happy and successful.',
+        register: 'informal',
+        order: 5,
+        examples: [
+          'She felt on top of the world after getting the promotion.',
+          'Winning the championship made the whole team feel on top of the world.',
+          'He was on top of the world after his first major sale.',
+        ],
+      },
+      {
+        phrase: 'make a mark',
+        explanation:
+          "To achieve something notable; to become recognized for one's contributions.",
+        register: 'neutral',
+        order: 6,
+        examples: [
+          'She made her mark in the industry at a very young age.',
+          'The new manager made his mark quickly with bold decisions.',
+          'This film made its mark as a turning point in cinema.',
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Difficulty & Challenges',
+    order: 4,
+    idioms: [
+      {
+        phrase: 'bite off more than you can chew',
+        explanation:
+          'To take on more responsibility or work than you can handle.',
+        register: 'informal',
+        order: 1,
+        examples: [
+          'He bit off more than he could chew by taking three projects at once.',
+          "Don't bite off more than you can chew — ask for help if you need it.",
+          'She realized she had bitten off more than she could chew with the new role.',
+        ],
+      },
+      {
+        phrase: 'face the music',
+        explanation: "To accept the unpleasant consequences of one's actions.",
+        register: 'informal',
+        order: 2,
+        examples: [
+          'He finally had to face the music and admit his mistake.',
+          'After months of avoiding it, she faced the music and apologized.',
+          "It's time to face the music and tell the client about the delay.",
+        ],
+      },
+      {
+        phrase: 'uphill battle',
+        explanation:
+          'A task or situation that is very difficult to achieve because you face many obstacles.',
+        register: 'neutral',
+        order: 3,
+        examples: [
+          'Getting the project approved was an uphill battle from the start.',
+          'Changing public opinion on this issue will be an uphill battle.',
+          'She faced an uphill battle to prove herself in the male-dominated field.',
+        ],
+      },
+      {
+        phrase: 'in deep water',
+        explanation:
+          'In a difficult or serious situation that is hard to escape from.',
+        register: 'informal',
+        order: 4,
+        examples: [
+          'He was in deep water after missing the deadline twice.',
+          'The company found itself in deep water after the scandal.',
+          'She was in deep water with her supervisor over the budget overrun.',
+        ],
+      },
+      {
+        phrase: 'catch someone off guard',
+        explanation: 'To surprise someone when they are not prepared.',
+        register: 'neutral',
+        order: 5,
+        examples: [
+          'The unexpected question caught her completely off guard.',
+          'The sudden market crash caught many investors off guard.',
+          'He was caught off guard by the announcement.',
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Communication',
+    order: 5,
+    idioms: [
+      {
+        phrase: 'get to the point',
+        explanation:
+          'To say the most important thing directly, without wasting time on unnecessary details.',
+        register: 'neutral',
+        order: 1,
+        examples: [
+          'We only have five minutes — please get to the point.',
+          'He tends to talk a lot before getting to the point.',
+          'Can you get to the point? I have another meeting in ten minutes.',
+        ],
+      },
+      {
+        phrase: 'beat around the bush',
+        explanation:
+          'To avoid talking about what is important; to speak in a vague or indirect way.',
+        register: 'informal',
+        order: 2,
+        examples: [
+          'Stop beating around the bush and tell me what happened.',
+          'She beat around the bush for ten minutes before mentioning the real issue.',
+          "Don't beat around the bush — just say what you mean.",
+        ],
+      },
+      {
+        phrase: 'on the same page',
+        explanation:
+          'In agreement or having the same understanding about something.',
+        register: 'neutral',
+        order: 3,
+        examples: [
+          "Let's have a quick meeting to make sure we are all on the same page.",
+          'I want to make sure we are on the same page before we proceed.',
+          'After the briefing, the team was finally on the same page.',
+        ],
+      },
+      {
+        phrase: 'speak your mind',
+        explanation:
+          'To say exactly what you think, even if it might upset others.',
+        register: 'neutral',
+        order: 4,
+        examples: [
+          'She has never been afraid to speak her mind in meetings.',
+          'He finally spoke his mind about the unfair policy.',
+          'The manager encouraged employees to speak their minds.',
+        ],
+      },
+      {
+        phrase: 'touch base',
+        explanation:
+          'To make brief contact with someone to share information or check in.',
+        register: 'informal',
+        order: 5,
+        examples: [
+          "Let's touch base on Friday to see how the project is going.",
+          'I just wanted to touch base with you before the presentation.',
+          'She touched base with every team member before the deadline.',
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Emotions & Feelings',
+    order: 6,
+    idioms: [
+      {
+        phrase: 'under the weather',
+        explanation: 'Feeling slightly ill or unwell.',
+        register: 'informal',
+        order: 1,
+        examples: [
+          'She is feeling a bit under the weather today, so she stayed home.',
+          'I was under the weather last week and missed a few meetings.',
+          'He looks under the weather — I hope he is okay.',
+        ],
+      },
+      {
+        phrase: 'over the moon',
+        explanation: 'Extremely happy and excited about something.',
+        register: 'informal',
+        order: 2,
+        examples: [
+          'She was over the moon when she got the scholarship.',
+          'The whole team was over the moon after winning the award.',
+          'He was over the moon about the new baby.',
+        ],
+      },
+      {
+        phrase: 'on cloud nine',
+        explanation: 'Extremely happy; in a state of euphoria.',
+        register: 'informal',
+        order: 3,
+        examples: [
+          'She has been on cloud nine since she got engaged.',
+          'After the promotion, he was on cloud nine for days.',
+          'They were on cloud nine after their team won the championship.',
+        ],
+      },
+      {
+        phrase: 'have butterflies in your stomach',
+        explanation:
+          'To feel nervous or anxious, especially before an important event.',
+        register: 'informal',
+        order: 4,
+        examples: [
+          'I always have butterflies in my stomach before a big presentation.',
+          'She had butterflies in her stomach before the job interview.',
+          'Even experienced performers can have butterflies before going on stage.',
+        ],
+      },
+      {
+        phrase: 'at the end of your rope',
+        explanation:
+          'To have no more patience or ability to cope with a difficult situation.',
+        register: 'informal',
+        order: 5,
+        examples: [
+          'After months of delays, the client was at the end of his rope.',
+          'She was at the end of her rope trying to manage everything alone.',
+          "I'm at the end of my rope with this broken software.",
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Work & Career',
+    order: 7,
+    idioms: [
+      {
+        phrase: 'burn the midnight oil',
+        explanation: 'To work very late into the night on something.',
+        register: 'neutral',
+        order: 1,
+        examples: [
+          'She burned the midnight oil to finish the report before the morning meeting.',
+          'The developers burned the midnight oil to fix the critical bug.',
+          'He has been burning the midnight oil all week to prepare for the launch.',
+        ],
+      },
+      {
+        phrase: 'ahead of the curve',
+        explanation:
+          'More advanced or progressive than others; anticipating future trends.',
+        register: 'neutral',
+        order: 2,
+        examples: [
+          'The company stayed ahead of the curve by investing in AI early.',
+          'She was always ahead of the curve when it came to industry trends.',
+          'Their research put them ahead of the curve in renewable energy.',
+        ],
+      },
+      {
+        phrase: 'back to square one',
+        explanation:
+          'Having to start again from the beginning after a failure.',
+        register: 'informal',
+        order: 3,
+        examples: [
+          'The client rejected our proposal, so we are back to square one.',
+          'After the system crashed, we were back to square one.',
+          'The contract fell through, putting us back to square one.',
+        ],
+      },
+      {
+        phrase: 'get the ball rolling',
+        explanation: 'To start an activity or process.',
+        register: 'informal',
+        order: 4,
+        examples: [
+          "Let's get the ball rolling on the new project this week.",
+          'She was the one who got the ball rolling on the merger discussions.',
+          'Can someone get the ball rolling on the agenda, please?',
+        ],
+      },
+      {
+        phrase: 'pull your weight',
+        explanation: 'To do your fair share of work within a group.',
+        register: 'informal',
+        order: 5,
+        examples: [
+          'Everyone on the team needs to pull their weight.',
+          'He was criticized for not pulling his weight during the project.',
+          'If you pull your weight, the team will respect you.',
+        ],
+      },
+      {
+        phrase: 'think outside the box',
+        explanation:
+          'To think creatively and unconventionally; to approach problems in new ways.',
+        register: 'neutral',
+        order: 6,
+        examples: [
+          'We need to think outside the box to solve this complex problem.',
+          'The campaign succeeded because the team was willing to think outside the box.',
+          'Her ability to think outside the box made her a valuable designer.',
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Money & Business',
+    order: 8,
+    idioms: [
+      {
+        phrase: 'cost an arm and a leg',
+        explanation: 'To be extremely expensive.',
+        register: 'informal',
+        order: 1,
+        examples: [
+          'The renovation cost an arm and a leg but was worth it.',
+          'Hiring a specialist in this field can cost an arm and a leg.',
+          'Those designer shoes cost an arm and a leg.',
+        ],
+      },
+      {
+        phrase: 'break even',
+        explanation:
+          'To make exactly enough money to cover costs, without profit or loss.',
+        register: 'neutral',
+        order: 2,
+        examples: [
+          'The business hopes to break even within the first year.',
+          'After all the expenses, we barely broke even on the event.',
+          'The film needs to sell 100,000 copies just to break even.',
+        ],
+      },
+      {
+        phrase: 'make ends meet',
+        explanation: 'To earn just enough money to pay for basic necessities.',
+        register: 'neutral',
+        order: 3,
+        examples: [
+          'With rising prices, many families struggle to make ends meet.',
+          'She took a second job to make ends meet.',
+          'They could barely make ends meet after the pay cut.',
+        ],
+      },
+      {
+        phrase: 'cut corners',
+        explanation:
+          'To do something in the easiest or cheapest way, often compromising quality.',
+        register: 'informal',
+        order: 4,
+        examples: [
+          'The contractor cut corners and used cheaper materials.',
+          'Cutting corners on safety is never acceptable.',
+          'They cut corners to meet the deadline and the product suffered.',
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Relationships',
+    order: 9,
+    idioms: [
+      {
+        phrase: 'tie the knot',
+        explanation: 'To get married.',
+        register: 'informal',
+        order: 1,
+        examples: [
+          'They finally tied the knot after dating for six years.',
+          'When are you two planning to tie the knot?',
+          'She and her partner tied the knot in a small ceremony last spring.',
+        ],
+      },
+      {
+        phrase: 'on thin ice',
+        explanation:
+          'In a risky or dangerous situation where one wrong move could cause serious trouble.',
+        register: 'informal',
+        order: 2,
+        examples: [
+          'After the second warning, he was on thin ice with his manager.',
+          'The diplomat was on thin ice with his controversial remarks.',
+          'She knew she was on thin ice when she missed the third deadline.',
+        ],
+      },
+      {
+        phrase: 'bury the hatchet',
+        explanation:
+          'To make peace with someone after a dispute; to end a conflict.',
+        register: 'neutral',
+        order: 3,
+        examples: [
+          'The two rivals finally buried the hatchet after years of conflict.',
+          "It's time to bury the hatchet and move forward.",
+          'They buried the hatchet and agreed to collaborate on the project.',
+        ],
+      },
+      {
+        phrase: 'see eye to eye',
+        explanation: 'To agree with someone; to have the same opinion or view.',
+        register: 'neutral',
+        order: 4,
+        examples: [
+          "They don't always see eye to eye on design decisions.",
+          'The partners saw eye to eye on most issues, which made the collaboration smooth.',
+          "It's rare to see eye to eye with everyone on a team.",
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Learning & Knowledge',
+    order: 10,
+    idioms: [
+      {
+        phrase: 'learn the ropes',
+        explanation: 'To learn the basics of a job, activity, or situation.',
+        register: 'neutral',
+        order: 1,
+        examples: [
+          'It took him a few weeks to learn the ropes at the new company.',
+          'She learned the ropes quickly and was soon managing her own clients.',
+          'Every new employee needs time to learn the ropes.',
+        ],
+      },
+      {
+        phrase: "pick someone's brain",
+        explanation:
+          'To ask someone for their knowledge, advice, or ideas about something.',
+        register: 'informal',
+        order: 2,
+        examples: [
+          'Can I pick your brain about the new marketing strategy?',
+          "She picked her mentor's brain before making the big decision.",
+          "I'd love to pick your brain about starting a business.",
+        ],
+      },
+      {
+        phrase: 'connect the dots',
+        explanation:
+          'To find the link between separate pieces of information to understand a bigger picture.',
+        register: 'neutral',
+        order: 3,
+        examples: [
+          'Once I connected the dots, the whole situation made sense.',
+          'It took the detective several hours to connect the dots.',
+          'He was the first to connect the dots between the two seemingly unrelated events.',
+        ],
+      },
+      {
+        phrase: 'know something inside out',
+        explanation: 'To know something extremely well and in great detail.',
+        register: 'informal',
+        order: 4,
+        examples: [
+          'She knows this software inside out.',
+          "He knows the city inside out — he's lived there his whole life.",
+          'You need to know the product inside out before you can sell it effectively.',
+        ],
+      },
+      {
+        phrase: 'trial and error',
+        explanation:
+          'A problem-solving method based on trying different solutions until one works.',
+        register: 'neutral',
+        order: 5,
+        examples: [
+          'We found the best approach through trial and error.',
+          'Cooking is often a process of trial and error.',
+          'By trial and error, the team finally got the system running correctly.',
+        ],
+      },
+    ],
+  },
+];
+
 async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
 
+  // ── Grammar seed ────────────────────────────────────────────────────────────
   console.log('Seeding grammar data...');
 
   for (const section of sections) {
@@ -1190,6 +1885,56 @@ async function main() {
     }
 
     console.log(`  ✓ ${section.title} (${section.patterns.length} patterns)`);
+  }
+
+  // ── Idiom seed ──────────────────────────────────────────────────────────────
+  console.log('Seeding idiom data...');
+
+  for (const category of idiomCategories) {
+    const createdCategory = await prisma.idiomCategory.upsert({
+      where: { id: `idiom-cat-${category.order}` },
+      update: { title: category.title, order: category.order },
+      create: {
+        id: `idiom-cat-${category.order}`,
+        title: category.title,
+        order: category.order,
+      },
+    });
+
+    for (const idiom of category.idioms) {
+      const idiomId = `idiom-${category.order}-${idiom.order}`;
+      const createdIdiom = await prisma.idiom.upsert({
+        where: { id: idiomId },
+        update: {
+          phrase: idiom.phrase,
+          explanation: idiom.explanation,
+          register: idiom.register ?? null,
+          notes: idiom.notes ?? null,
+          order: idiom.order,
+        },
+        create: {
+          id: idiomId,
+          categoryId: createdCategory.id,
+          phrase: idiom.phrase,
+          explanation: idiom.explanation,
+          register: idiom.register ?? null,
+          notes: idiom.notes ?? null,
+          order: idiom.order,
+        },
+      });
+
+      await prisma.idiomExample.deleteMany({
+        where: { idiomId: createdIdiom.id, userId: null },
+      });
+
+      for (const sentence of idiom.examples) {
+        await prisma.idiomExample.create({
+          data: { idiomId: createdIdiom.id, userId: null, sentence },
+        });
+      }
+    }
+
+    console.log(`  ✓ ${category.title} (${category.idioms.length} idioms)`);
   }
 
   console.log('Done!');
