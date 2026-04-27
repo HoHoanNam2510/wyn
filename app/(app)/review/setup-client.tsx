@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, BookOpen, FileEdit } from 'lucide-react';
+import { ArrowRight, BookOpen, FileEdit, Puzzle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -34,7 +34,9 @@ const COUNT_OPTIONS = [
 
 export function ReviewSetupClient({ categories, totalWords }: Props) {
   const router = useRouter();
-  const [mode, setMode] = useState<'flashcard' | 'fill_blank'>('flashcard');
+  const [mode, setMode] = useState<
+    'flashcard' | 'fill_blank' | 'sentence_build'
+  >('flashcard');
   const [categoryId, setCategoryId] = useState('all');
   const [count, setCount] = useState('20');
 
@@ -56,11 +58,16 @@ export function ReviewSetupClient({ categories, totalWords }: Props) {
       {/* Mode */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">Mode</Label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {(
             [
               { value: 'flashcard', label: 'Flashcard MC', Icon: BookOpen },
               { value: 'fill_blank', label: 'Fill in Blank', Icon: FileEdit },
+              {
+                value: 'sentence_build',
+                label: 'Sentence Builder',
+                Icon: Puzzle,
+              },
             ] as const
           ).map(({ value, label, Icon }) => (
             <button

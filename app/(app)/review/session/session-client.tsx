@@ -25,12 +25,14 @@ import type {
   ReviewQuestion,
   FlashcardQuestion,
   FillBlankQuestion,
+  SentenceBuildQuestion,
 } from '@/lib/review/pickQuestions';
 import { logReviewEvent } from '@/app/actions/reviews';
 import { AudioButton } from '@/components/ui/audio-button';
 
 const REVIEW_SECS = 15;
 const ANSWER_SECS = 30;
+const SENTENCE_BUILD_SECS = 45;
 
 type AnswerRecord = {
   wordId: string;
@@ -87,8 +89,11 @@ export function SessionClient({
   mode,
 }: {
   questions: ReviewQuestion[];
-  mode: 'flashcard' | 'fill_blank';
+  mode: 'flashcard' | 'fill_blank' | 'sentence_build';
 }) {
+  const answerSecs =
+    mode === 'sentence_build' ? SENTENCE_BUILD_SECS : ANSWER_SECS;
+
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<'answering' | 'reviewing'>('answering');
@@ -96,12 +101,13 @@ export function SessionClient({
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [fillInput, setFillInput] = useState('');
+  const [sentenceIndices, setSentenceIndices] = useState<number[]>([]);
   const [done, setDone] = useState(false);
   const [lifelinesUsed, setLifelinesUsed] = useState<Lifelines>(LIFELINES_INIT);
   const [activeHints, setActiveHints] = useState<Lifelines>(LIFELINES_INIT);
   const [partialAnswer, setPartialAnswer] = useState<string | null>(null);
   const [sessionDuration, setSessionDuration] = useState(0);
-  const [countdown, setCountdown] = useState(ANSWER_SECS);
+  const [countdown, setCountdown] = useState(answerSecs);
 
   const sessionStartRef = useRef<number>(0);
   const questionStartRef = useRef<number>(0);
@@ -129,9 +135,10 @@ export function SessionClient({
       setSelectedChoice(null);
       setFeedback(null);
       setPhase('answering');
-      setCountdown(ANSWER_SECS);
+      setCountdown(answerSecs);
       setActiveHints(LIFELINES_INIT);
       setPartialAnswer(null);
+      setSentenceIndices([]);
     }
   }, [isLast]);
 
@@ -210,7 +217,7 @@ export function SessionClient({
       correctAnswer: string;
       userAnswer: string;
       wordId: string;
-      modeVal: 'flashcard' | 'fill_blank';
+      modeVal: 'flashcard' | 'fill_blank' | 'sentence_build';
     }) => {
       const durationMs = Date.now() - questionStartRef.current;
       setFeedback({ correct, correctAnswer });
@@ -222,7 +229,6 @@ export function SessionClient({
       logReviewEvent({ wordId, mode: modeVal, correct, durationMs }).catch(
         () => {}
       );
-      // Switch to 10s review countdown
       if (countdownRef.current) clearInterval(countdownRef.current);
       setCountdown(REVIEW_SECS);
       countdownRef.current = setInterval(() => {
@@ -270,6 +276,38 @@ export function SessionClient({
     });
   }, [phase, currentQ, fillInput, handleAnswer]);
 
+  const handleTokenToSentence = useCallback(
+    (tokenIdx: number) => {
+      if (phase !== 'answering') return;
+      setSentenceIndices((prev) => [...prev, tokenIdx]);
+    },
+    [phase]
+  );
+
+  const handleTokenToPool = useCallback(
+    (sentencePos: number) => {
+      if (phase !== 'answering') return;
+      setSentenceIndices((prev) => prev.filter((_, i) => i !== sentencePos));
+    },
+    [phase]
+  );
+
+  const handleSentenceBuildSubmit = useCallback(() => {
+    if (phase !== 'answering') return;
+    const q = currentQ as SentenceBuildQuestion;
+    if (sentenceIndices.length === 0) return;
+    const userAnswer = sentenceIndices.map((i) => q.tokens[i]).join(' ');
+    const correct =
+      userAnswer.toLowerCase().trim() === q.answer.toLowerCase().trim();
+    handleAnswer({
+      correct,
+      correctAnswer: q.answer,
+      userAnswer,
+      wordId: q.wordId,
+      modeVal: 'sentence_build',
+    });
+  }, [phase, currentQ, sentenceIndices, handleAnswer]);
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const q = currentQ;
@@ -285,11 +323,18 @@ export function SessionClient({
         }
       } else if (q.type === 'fill_blank' && e.key === 'Enter') {
         handleFillSubmit();
+      } else if (q.type === 'sentence_build' && e.key === 'Enter') {
+        handleSentenceBuildSubmit();
       }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [currentQ, handleFlashcardChoice, handleFillSubmit]);
+  }, [
+    currentQ,
+    handleFlashcardChoice,
+    handleFillSubmit,
+    handleSentenceBuildSubmit,
+  ]);
 
   // ── Summary ──────────────────────────────────────────────────────────────
   if (done) {
@@ -344,7 +389,7 @@ export function SessionClient({
                     {a.userAnswer}
                   </span>
                   <span className="text-xs text-muted-foreground">→</span>
-                  <span className="text-sm font-semibold text-primary">
+                  <span className="text-sm font-semibold text-primary truncate max-w-[40%]">
                     {a.term}
                   </span>
                 </div>
@@ -370,6 +415,13 @@ export function SessionClient({
     );
   }
 
+  const modeLabel =
+    mode === 'flashcard'
+      ? 'Flashcard MC'
+      : mode === 'fill_blank'
+        ? 'Fill in Blank'
+        : 'Sentence Builder';
+
   // ── Question screen ───────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
@@ -378,7 +430,7 @@ export function SessionClient({
           <span>
             {index + 1} / {questions.length}
           </span>
-          <span>{mode === 'flashcard' ? 'Flashcard MC' : 'Fill in Blank'}</span>
+          <span>{modeLabel}</span>
         </div>
         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
           <div
@@ -395,7 +447,7 @@ export function SessionClient({
           selectedChoice={selectedChoice}
           onChoice={handleFlashcardChoice}
         />
-      ) : (
+      ) : currentQ.type === 'fill_blank' ? (
         <FillBlankView
           question={currentQ as FillBlankQuestion}
           isFeedback={isFeedback}
@@ -409,6 +461,16 @@ export function SessionClient({
           partialAnswer={partialAnswer}
           onUseLifeline={handleUseLifeline}
         />
+      ) : (
+        <SentenceBuildView
+          question={currentQ as SentenceBuildQuestion}
+          isFeedback={isFeedback}
+          feedback={feedback}
+          sentenceIndices={sentenceIndices}
+          onTokenToSentence={handleTokenToSentence}
+          onTokenToPool={handleTokenToPool}
+          onSubmit={handleSentenceBuildSubmit}
+        />
       )}
 
       {/* Countdown progress bar */}
@@ -419,7 +481,7 @@ export function SessionClient({
             isFeedback ? 'bg-primary' : 'bg-muted-foreground/40'
           )}
           style={{
-            width: `${(countdown / (isFeedback ? REVIEW_SECS : ANSWER_SECS)) * 100}%`,
+            width: `${(countdown / (isFeedback ? REVIEW_SECS : answerSecs)) * 100}%`,
           }}
         />
       </div>
@@ -449,7 +511,9 @@ export function SessionClient({
           <span>
             {currentQ.type === 'flashcard'
               ? `Press 1–${(currentQ as FlashcardQuestion).choices.length} to select`
-              : 'Press Enter to submit'}
+              : currentQ.type === 'fill_blank'
+                ? 'Press Enter to submit'
+                : 'Click chips to build the sentence'}
           </span>
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
@@ -763,6 +827,164 @@ function FillBlankView({
             </>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Sentence Builder sub-component ──────────────────────────────────────────
+
+function SentenceBuildView({
+  question,
+  isFeedback,
+  feedback,
+  sentenceIndices,
+  onTokenToSentence,
+  onTokenToPool,
+  onSubmit,
+}: {
+  question: SentenceBuildQuestion;
+  isFeedback: boolean;
+  feedback: FeedbackState;
+  sentenceIndices: number[];
+  onTokenToSentence: (tokenIdx: number) => void;
+  onTokenToPool: (sentencePos: number) => void;
+  onSubmit: () => void;
+}) {
+  const usedSet = new Set(sentenceIndices);
+  const poolItems = question.tokens
+    .map((token, idx) => ({ token, idx }))
+    .filter(({ idx }) => !usedSet.has(idx));
+
+  const isTargetToken = (token: string) =>
+    token.toLowerCase().replace(/[.,!?;:'"()\-]/g, '') ===
+    question.term.toLowerCase();
+
+  return (
+    <div className="space-y-4">
+      {/* Context */}
+      <div className="bg-card border border-border rounded-xl px-5 py-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Badge
+            variant="outline"
+            className="text-xs text-primary border-primary/30"
+          >
+            {question.partOfSpeech}
+          </Badge>
+        </div>
+        <p className="text-base leading-relaxed">{question.meaning}</p>
+      </div>
+
+      {/* Sentence assembly area */}
+      <div
+        className={cn(
+          'min-h-16 border-2 rounded-xl px-4 py-3 flex flex-wrap gap-2 items-start content-start transition-colors',
+          isFeedback
+            ? feedback?.correct
+              ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
+              : 'border-destructive bg-destructive/5'
+            : sentenceIndices.length > 0
+              ? 'border-primary/40 bg-primary/5'
+              : 'border-dashed border-border bg-card'
+        )}
+      >
+        {sentenceIndices.length === 0 && !isFeedback ? (
+          <p className="text-sm text-muted-foreground italic self-center">
+            Click chips below to build the sentence…
+          </p>
+        ) : (
+          sentenceIndices.map((tokenIdx, pos) => {
+            const token = question.tokens[tokenIdx];
+            const isTarget = isTargetToken(token);
+            return (
+              <button
+                key={pos}
+                type="button"
+                disabled={isFeedback}
+                onClick={() => onTokenToPool(pos)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
+                  isFeedback
+                    ? isTarget
+                      ? 'bg-primary text-white border-primary cursor-default'
+                      : 'bg-muted text-foreground border-border cursor-default'
+                    : isTarget
+                      ? 'bg-primary text-white border-primary hover:bg-primary/90 cursor-pointer'
+                      : 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 cursor-pointer'
+                )}
+              >
+                {token}
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      {/* Feedback banner */}
+      {isFeedback && (
+        <div
+          className={cn(
+            'flex items-start gap-2 px-4 py-3 rounded-lg text-sm font-medium border',
+            feedback?.correct
+              ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800'
+              : 'bg-destructive/5 text-destructive border-destructive/20'
+          )}
+        >
+          {feedback?.correct ? (
+            <>
+              <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>Correct!</span>
+            </>
+          ) : (
+            <>
+              <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium">Correct sentence: </span>
+                <span className="font-normal">{question.answer}</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Chip pool */}
+      {!isFeedback && (
+        <div className="flex flex-wrap gap-2 min-h-10">
+          {poolItems.map(({ token, idx }) => {
+            const isTarget = isTargetToken(token);
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => onTokenToSentence(idx)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all cursor-pointer',
+                  isTarget
+                    ? 'bg-primary text-white border-primary hover:bg-primary/90'
+                    : 'bg-card border-border hover:border-primary/50 hover:bg-primary/5'
+                )}
+              >
+                {token}
+              </button>
+            );
+          })}
+          {poolItems.length === 0 && (
+            <p className="text-xs text-muted-foreground italic self-center">
+              All chips placed — press Enter or click Check Answer
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Submit */}
+      {!isFeedback && (
+        <Button
+          onClick={onSubmit}
+          disabled={sentenceIndices.length === 0}
+          className="w-full bg-primary hover:bg-primary/90 text-white"
+        >
+          Check Answer
+        </Button>
       )}
     </div>
   );

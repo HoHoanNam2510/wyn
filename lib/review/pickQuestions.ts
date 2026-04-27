@@ -24,7 +24,20 @@ export type FillBlankQuestion = {
   audioUrl: string | null;
 };
 
-export type ReviewQuestion = FlashcardQuestion | FillBlankQuestion;
+export type SentenceBuildQuestion = {
+  type: 'sentence_build';
+  wordId: string;
+  term: string;
+  tokens: string[];
+  answer: string;
+  meaning: string;
+  partOfSpeech: string;
+};
+
+export type ReviewQuestion =
+  | FlashcardQuestion
+  | FillBlankQuestion
+  | SentenceBuildQuestion;
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -42,7 +55,7 @@ export async function pickQuestions({
   count,
 }: {
   userId: string;
-  mode: 'flashcard' | 'fill_blank';
+  mode: 'flashcard' | 'fill_blank' | 'sentence_build';
   categoryId: string;
   count: number | 'all';
 }): Promise<ReviewQuestion[]> {
@@ -87,7 +100,7 @@ export async function pickQuestions({
         correctChoice: word.term,
       };
     });
-  } else {
+  } else if (mode === 'fill_blank') {
     const eligible: {
       wordId: string;
       term: string;
@@ -142,7 +155,6 @@ export async function pickQuestions({
 
     return selected.map(({ wordId, term, examples }): FillBlankQuestion => {
       const example = examples[Math.floor(Math.random() * examples.length)];
-      // Replace first occurrence only — keeps sentence readable
       const termRegex = new RegExp(
         term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
         'i'
@@ -160,5 +172,71 @@ export async function pickQuestions({
         audioUrl: example.audioUrl,
       };
     });
+  } else {
+    // sentence_build
+    const eligible: {
+      wordId: string;
+      term: string;
+      candidates: {
+        text: string;
+        tokens: string[];
+        partOfSpeech: string;
+        meaning: string;
+      }[];
+    }[] = [];
+
+    for (const word of words) {
+      const termRegex = new RegExp(
+        word.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+        'i'
+      );
+      const candidates: {
+        text: string;
+        tokens: string[];
+        partOfSpeech: string;
+        meaning: string;
+      }[] = [];
+
+      for (const ctx of word.contexts) {
+        for (const ex of ctx.examples) {
+          if (termRegex.test(ex.text)) {
+            const tokens = ex.text.split(' ');
+            if (tokens.length >= 5 && tokens.length <= 15) {
+              candidates.push({
+                text: ex.text,
+                tokens,
+                partOfSpeech: ctx.partOfSpeech,
+                meaning: ctx.meaning,
+              });
+            }
+          }
+        }
+      }
+
+      if (candidates.length > 0) {
+        eligible.push({ wordId: word.id, term: word.term, candidates });
+      }
+    }
+
+    if (eligible.length === 0) return [];
+
+    const pool = shuffle(eligible);
+    const selected = count === 'all' ? pool : pool.slice(0, count);
+
+    return selected.map(
+      ({ wordId, term, candidates }): SentenceBuildQuestion => {
+        const candidate =
+          candidates[Math.floor(Math.random() * candidates.length)];
+        return {
+          type: 'sentence_build',
+          wordId,
+          term,
+          tokens: shuffle(candidate.tokens),
+          answer: candidate.text,
+          meaning: candidate.meaning,
+          partOfSpeech: candidate.partOfSpeech,
+        };
+      }
+    );
   }
 }

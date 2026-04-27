@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-export const reviewModeValues = ['flashcard', 'fill_blank'] as const;
+export const reviewModeValues = [
+  'flashcard',
+  'fill_blank',
+  'sentence_build',
+] as const;
 export type ReviewMode = (typeof reviewModeValues)[number];
 
 export const reviewSetupSchema = z.object({
