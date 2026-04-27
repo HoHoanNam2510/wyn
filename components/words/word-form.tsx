@@ -77,12 +77,13 @@ export function WordForm({ categories, defaultValues, wordId }: Props) {
 
   const form = useForm<WordFormValues>({
     resolver: zodResolver(wordSchema),
-    defaultValues: (defaultValues ?? {
+    defaultValues: {
       term: '',
       imageUrl: '',
       categoryIds: [] as string[],
       contexts: [DEFAULT_CONTEXT],
-    }) as WordFormValues,
+      ...defaultValues,
+    } as WordFormValues,
   });
 
   const {

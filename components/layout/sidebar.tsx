@@ -11,6 +11,7 @@ import {
   BarChart3,
   LayoutDashboard,
   BookMarked,
+  ScanText,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/words', label: 'Words', icon: BookOpen },
   { href: '/categories', label: 'Categories', icon: FolderOpen },
   { href: '/grammar', label: 'Grammar', icon: BookMarked },
+  { href: '/text-scanner', label: 'Text Scanner', icon: ScanText },
   { href: '/review', label: 'Review', icon: RotateCcw },
   { href: '/stats', label: 'Stats', icon: BarChart3 },
 ];

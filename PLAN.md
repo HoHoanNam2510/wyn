@@ -393,9 +393,108 @@ model GrammarReviewEvent {
 
 ---
 
+## Phase 8 — Text Scanner
+
+**Status:** `[x]` Complete
+**Prerequisite:** Phase 7 complete
+
+**Goal:** User pastes any English text → each word is color-coded by vocabulary status → click an unknown word to add it to the collection. Bridges real-world reading with the word learning system.
+
+### Word Status (3 levels)
+
+- **Mastered** (green) — in user's vocabulary + ≥5 reviews + ≥80% accuracy
+- **Learning** (amber) — in user's vocabulary, not yet mastered
+- **Unknown** (plain/muted) — not in user's vocabulary → click to add
+
+### Architecture
+
+- No new DB table — client-side matching against word map fetched server-side once
+- Server RSC pre-fetches all user words + mastery stats (raw SQL, same pattern as `lib/stats/queries.ts`)
+- Tokenizer in-browser: strips punctuation from token edges for lookup, preserves original for display
+- Clicking unknown word → Dialog with "Add to vocabulary" link to `/words/new?term={word}`
+- Clicking known/learning word → Popover showing first context meaning + partOfSpeech
+
+### Key files
+
+```
+app/(app)/text-scanner/page.tsx           ← RSC: fetch words + mastery stats, pass word map to client
+app/(app)/text-scanner/scanner-client.tsx ← Client: textarea → tokenize → highlight spans + click handlers
+app/(app)/text-scanner/loading.tsx        ← Skeleton
+lib/text-scanner.ts                       ← tokenize(text) utility
+components/layout/sidebar.tsx             ← Add Text Scanner nav item (ScanText icon)
+```
+
+---
+
+## Phase 9 — Idioms & Phrases
+
+**Status:** `[ ]` Not started
+**Prerequisite:** Phase 8 complete
+
+**Goal:** Third content section (alongside Words and Grammar) for multi-word expressions. Seeded content organized by category, user-added examples per idiom, and a quiz mode mirroring the Grammar Quiz.
+
+### Key differences from Grammar
+
+- `explanation: String` instead of `formula: Json` (no chip display needed)
+- `register: String?` field (formal / informal / neutral) — not present in Grammar
+- 10 categories, ~53 idioms (vs Grammar's 12 sections, ~51 patterns)
+
+### Data Model (4 new models)
+
+```prisma
+IdiomCategory   → id, title, order
+Idiom           → id, categoryId (FK), phrase, explanation, register?, notes?, order
+IdiomExample    → id, idiomId (FK), userId (FK, nullable — null = seeded), sentence, createdAt
+IdiomReviewEvent → id, userId (FK), idiomId (FK), correct, reviewedAt, durationMs
+```
+
+### Seed Content (10 categories, ~53 idioms)
+
+1. Social Interaction (8) — break the ice, read the room, hit it off, clear the air, go out of your way…
+2. Time & Deadlines (5) — in the nick of time, once in a blue moon, around the clock…
+3. Success & Achievement (6) — hit the nail on the head, go the extra mile, raise the bar…
+4. Difficulty & Challenges (5) — bite off more than you can chew, face the music, uphill battle…
+5. Communication (5) — get to the point, beat around the bush, on the same page…
+6. Emotions & Feelings (5) — under the weather, over the moon, on cloud nine…
+7. Work & Career (6) — burn the midnight oil, ahead of the curve, back to square one…
+8. Money & Business (4) — cost an arm and a leg, break even, make ends meet…
+9. Relationships (4) — tie the knot, on thin ice, bury the hatchet…
+10. Learning & Knowledge (5) — learn the ropes, pick someone's brain, connect the dots…
+
+### Routes
+
+```
+/idioms                      → List page (accordion by category)
+/idioms/[idiomId]            → Detail (phrase, explanation, register, examples, add form)
+/idioms/quiz                 → Quiz setup (category + count)
+/idioms/quiz/session         → Quiz session (MC: identify idiom from example sentence)
+```
+
+### Key files
+
+```
+prisma/schema.prisma                                   ← Add 4 Idiom* models + User relations
+prisma/seed.ts                                         ← Extend with idiom seed data
+lib/schemas/idioms.ts                                  ← Zod schema for user example input
+lib/idiomQuiz/pickQuestions.ts                         ← Pick questions + distractors (cross-category preferred)
+app/actions/idioms.ts                                  ← addIdiomExample, deleteIdiomExample
+app/actions/idiomQuiz.ts                               ← logIdiomReviewEvent
+app/(app)/idioms/page.tsx                              ← RSC list page (accordion)
+app/(app)/idioms/[idiomId]/page.tsx                    ← RSC detail page
+app/(app)/idioms/[idiomId]/examples-client.tsx         ← Add/delete user examples (client)
+app/(app)/idioms/quiz/page.tsx                         ← RSC setup page
+app/(app)/idioms/quiz/setup-client.tsx                 ← Category + count selectors
+app/(app)/idioms/quiz/session/page.tsx                 ← RSC: pick questions
+app/(app)/idioms/quiz/session/session-client.tsx       ← Quiz UI (MC, no FormulaDisplay)
+components/layout/sidebar.tsx                          ← Add Idioms nav item (Lightbulb icon)
+```
+
+---
+
 ## Future Backlog (not in current scope)
 
-- SRS algorithm (SM-2 like Anki) — only if review without scheduling feels insufficient
+- SRS algorithm (SM-2 like Anki) — add `nextReviewAt` scheduling; review queue shows words due today
+- Writing Practice Mode — 4th review mode: given a word, user writes 1–2 sentences; self-graded
 - Multi-user / public access
 - CSV/JSON import
 - Example translation (Vietnamese)

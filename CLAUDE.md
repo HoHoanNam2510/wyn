@@ -43,6 +43,10 @@ GrammarSection      → id, title, order
 GrammarPattern      → id, sectionId (FK), title, formula (Json = FormulaChunk[]), notes, order
 GrammarExample      → id, patternId (FK), userId (FK, nullable — null = seeded), sentence, createdAt
 GrammarReviewEvent  → id, userId (FK), patternId (FK), correct (bool), reviewedAt, durationMs
+IdiomCategory       → id, title, order
+Idiom               → id, categoryId (FK), phrase, explanation, register (nullable), notes (nullable), order
+IdiomExample        → id, idiomId (FK), userId (FK, nullable — null = seeded), sentence, createdAt
+IdiomReviewEvent    → id, userId (FK), idiomId (FK), correct (bool), reviewedAt, durationMs
 ```
 
 **"ALL" category**: Virtual — no DB row. Means "no category filter applied." Do NOT create a real ALL category in the DB.
@@ -58,6 +62,8 @@ GrammarReviewEvent  → id, userId (FK), patternId (FK), correct (bool), reviewe
 - [x] **Phase 5** — Sentence Builder review mode (word-order grammar practice, Duolingo-style chip UI, DB migration for new ReviewMode enum value)
 - [x] **Phase 6** — Grammar reference page (seeded patterns per section, chip/badge formula display, user-added examples per pattern)
 - [x] **Phase 7** — Grammar Pattern Quiz (`/grammar/quiz`): identify-the-pattern MC mode, separate `GrammarReviewEvent` table, section filter + count setup, summary screen
+- [x] **Phase 8** — Text Scanner (`/text-scanner`): paste any English text → highlight mastered/learning/unknown words → click unknown to add; no new DB table, client-side matching against server-fetched word map
+- [ ] **Phase 9** — Idioms & Phrases (`/idioms`): seeded multi-word expressions by category, user-added examples, quiz mode (identify-the-idiom MC); 4 new Prisma models (IdiomCategory, Idiom, IdiomExample, IdiomReviewEvent)
 
 Update with `[x]` when a phase is complete.
 
