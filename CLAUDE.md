@@ -38,7 +38,7 @@ Context             → id, wordId (FK), partOfSpeech (enum), phonetic, audioUrl
 Example             → id, contextId (FK), text
 Category            → id, userId (FK), name, color
 WordCategory        → wordId + categoryId (composite PK — join table for M:N)
-ReviewEvent         → id, userId, wordId, mode (flashcard | fill_blank | sentence_build), correct (bool), reviewedAt, durationMs
+ReviewEvent         → id, userId, wordId, mode (flashcard | fill_blank | sentence_build | writing_practice), correct (bool), reviewedAt, durationMs
 GrammarSection      → id, title, order
 GrammarPattern      → id, sectionId (FK), title, formula (Json = FormulaChunk[]), notes, order
 GrammarExample      → id, patternId (FK), userId (FK, nullable — null = seeded), sentence, createdAt
@@ -64,6 +64,8 @@ IdiomReviewEvent    → id, userId (FK), idiomId (FK), correct (bool), reviewedA
 - [x] **Phase 7** — Grammar Pattern Quiz (`/grammar/quiz`): identify-the-pattern MC mode, separate `GrammarReviewEvent` table, section filter + count setup, summary screen
 - [x] **Phase 8** — Text Scanner (`/text-scanner`): paste any English text → highlight mastered/learning/unknown words → click unknown to add; no new DB table, client-side matching against server-fetched word map
 - [x] **Phase 9** — Idioms & Phrases (`/idioms`): seeded multi-word expressions by category, user-added examples, quiz mode (identify-the-idiom MC); 4 new Prisma models (IdiomCategory, Idiom, IdiomExample, IdiomReviewEvent)
+- [x] **Phase 10** — Writing Practice Mode (`/review` 4th mode): given a word → user writes sentences → optional Groq AI check → self-grades; no timer; adds `writing_practice` to ReviewMode enum; recency-weighted question sampling across all 4 modes
+- [ ] **Phase 11** — SRS Algorithm (`/review/srs`): SM-2 spaced repetition scheduling; 4-button Anki grading (Again/Hard/Good/Easy); `nextReviewAt` + SRS fields on Word; sidebar due-count badge; stats integration
 
 Update with `[x]` when a phase is complete.
 
@@ -110,6 +112,7 @@ AUTH_GOOGLE_ID=              # Google OAuth client ID
 AUTH_GOOGLE_SECRET=          # Google OAuth client secret
 AUTH_SECRET=                 # openssl rand -base64 32
 UNSPLASH_ACCESS_KEY=         # Unsplash API (free, 50 req/hr on demo, 5000/hr on production)
+GROQ_API_KEY=                # Groq API (free tier: 14400 req/day) — used for AI writing check in Writing Practice mode
 NEXT_PUBLIC_APP_URL=         # http://localhost:3000 or https://your-app.vercel.app
 ```
 

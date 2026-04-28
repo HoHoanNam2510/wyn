@@ -15,7 +15,11 @@ export default async function SessionPage({
   const userId = session.user.id;
 
   const params = await searchParams;
-  const mode = params.mode as 'flashcard' | 'fill_blank' | 'sentence_build';
+  const mode = params.mode as
+    | 'flashcard'
+    | 'fill_blank'
+    | 'sentence_build'
+    | 'writing_practice';
   const categoryId = params.category ?? 'all';
   const countParam = params.count ?? '20';
   const count =
@@ -28,7 +32,8 @@ export default async function SessionPage({
   if (
     mode !== 'flashcard' &&
     mode !== 'fill_blank' &&
-    mode !== 'sentence_build'
+    mode !== 'sentence_build' &&
+    mode !== 'writing_practice'
   )
     redirect('/review');
 
@@ -43,7 +48,9 @@ export default async function SessionPage({
             ? 'Not enough words in this category. Add at least 4 words to use Flashcard mode.'
             : mode === 'sentence_build'
               ? 'No words have examples with 5–15 words. Add longer example sentences to your words.'
-              : 'No words with matching examples were found. Add examples to your words first.'}
+              : mode === 'writing_practice'
+                ? 'No words with examples found. Add at least one example sentence to a word first.'
+                : 'No words with matching examples were found. Add examples to your words first.'}
         </p>
         <Button asChild variant="outline">
           <Link href="/review">Back to setup</Link>

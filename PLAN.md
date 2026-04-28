@@ -491,10 +491,186 @@ components/layout/sidebar.tsx                          ← Add Idioms nav item (
 
 ---
 
+## Phase 10 — Writing Practice Mode
+
+**Status:** `[x]` Complete
+**Prerequisite:** Phase 9 complete
+
+**Goal:** Fourth review mode in the existing `/review` flow. Given a word (term + meaning + phonetic), user writes 1–2 sentences using it. Optional AI evaluation via Groq. User sees reference example sentences from DB, then self-grades. No countdown timer.
+
+### How it works
+
+1. Setup page: select "Writing Practice" mode (4th button) alongside existing 3 modes
+2. Session: show word card (term, phonetic, meaning, image) → textarea → "Submit Writing" → reveal reference examples + opt-in "Check with AI" → self-grade (Correct ✓ / Needs Practice)
+3. Summary: same AnswerRecord[] summary as other modes
+
+### Data Model
+
+No new DB table. Added `writing_practice` to the `ReviewMode` enum. Log to existing `ReviewEvent`.
+
+```prisma
+enum ReviewMode {
+  flashcard
+  fill_blank
+  sentence_build
+  writing_practice
+}
+```
+
+### Question Type
+
+```typescript
+type WritingPracticeQuestion = {
+  type: 'writing_practice';
+  wordId: string;
+  term: string;
+  imageUrl: string | null;
+  meaning: string;
+  partOfSpeech: string;
+  phonetic: string | null;
+  audioUrl: string | null;
+  exampleSentences: string[]; // reference sentences, up to 3, shown after writing
+};
+```
+
+### Session flow
+
+**Phase 'answering':** word card + `<Textarea>` + "Submit Writing" button (no countdown)
+**Phase 'reviewing':** user's text (read-only) + opt-in AI check button → AI feedback box → Reference Examples → grade buttons (no auto-advance)
+
+### AI Sentence Checking (addition beyond original scope)
+
+Free-tier Groq API (`llama-3.1-8b-instant`, 14,400 req/day). Opt-in — button only appears after "Submit Writing". Returns `{ correct: boolean, feedback: string }`.
+
+- `lib/groq.ts` — Groq client singleton (`GROQ_API_KEY` env var)
+- `app/actions/writing.ts` — `checkWritingSentence({ term, partOfSpeech, meaning, sentence })` Server Action
+- AI feedback is informational only; user still self-grades manually
+
+**`HighlightedFeedback` component** (in `session-client.tsx`): renders AI feedback with quoted phrases (`'...'` / `"..."`) highlighted. Uses lookbehind regex `(?<![a-zA-Z])` to avoid false positives on `one's`, `don't`, etc. Highlight color matches feedback box: green for correct, amber for incorrect.
+
+### Files Created / Modified
+
+| File | Change |
+|------|--------|
+| `prisma/schema.prisma` | Added `writing_practice` to ReviewMode enum |
+| `lib/schemas/review.ts` | Added `'writing_practice'` to `reviewModeValues` |
+| `lib/review/pickQuestions.ts` | Added `WritingPracticeQuestion` type + branch; recency weighting (see below) |
+| `lib/groq.ts` | New — Groq client singleton |
+| `app/actions/writing.ts` | New — `checkWritingSentence` Server Action (Groq AI eval) |
+| `app/actions/reviews.ts` | Expanded mode union type |
+| `app/(app)/review/session/page.tsx` | Added to validation guard + empty-state message |
+| `app/(app)/review/session/session-client.tsx` | Added `WritingPracticeView` + `HighlightedFeedback`; timer bypass for this mode |
+| `app/(app)/review/setup-client.tsx` | Added 4th mode button (PenLine icon); grid → `grid-cols-2 sm:grid-cols-4` |
+
+### Review Recency Weighting (addition beyond original scope, applies to all 4 modes)
+
+**Problem:** Pure random sampling caused the same word to appear in nearly every session (words with more examples had higher effective probability; no memory of recent reviews).
+
+**Solution** (in `lib/review/pickQuestions.ts`):
+
+- After building the eligible-word list for any mode, query `ReviewEvent` to get each word's most-recent review timestamp (across all modes).
+- Apply weighted sampling without replacement: words reviewed more recently get lower weight; never-reviewed words get highest weight.
+
+```
+Weight table:
+  Never reviewed    → 10  (highest)
+  Reviewed < 1h ago →  1  (lowest)
+  Reviewed today    →  3
+  Reviewed 1–3d ago →  6
+  Reviewed 3d+ ago  → 10  (same as never)
+```
+
+- `recencyWeight(lastReviewedAt)` — pure function, no I/O
+- `weightedSample(items, getWeight, n)` — weighted random sampling without replacement (Fisher-Yates variant)
+- `sampleWithRecency(eligible, userId, count)` — async helper; fetches last-reviewed map, delegates to `weightedSample`; if `count === 'all'`, falls back to plain shuffle (no repetition concern)
+
+---
+
+## Phase 11 — SRS Algorithm (SM-2)
+
+**Status:** `[ ]` Pending
+**Prerequisite:** Phase 10 complete
+
+**Goal:** Spaced repetition scheduling using SM-2 algorithm. Adds `nextReviewAt` and related fields to `Word`. New `/review/srs` route shows a queue of words due today. Session uses flashcard-style reveal + 4-button Anki grading (Again / Hard / Good / Easy → SM-2 quality 0/3/4/5). Updates word SRS state after each answer and logs to `ReviewEvent`.
+
+### Data Model
+
+Add 4 fields to `Word` and `srs` to `ReviewMode` enum:
+
+```prisma
+model Word {
+  // ...existing fields...
+  nextReviewAt    DateTime?                    // null = never SRS-reviewed → immediately due
+  srsInterval     Int       @default(1)        // days until next review
+  srsEaseFactor   Float     @default(2.5)      // SM-2 E-Factor
+  srsRepetitions  Int       @default(0)        // consecutive correct answers
+
+  @@index([userId, nextReviewAt])              // required for queue performance
+}
+
+enum ReviewMode {
+  flashcard
+  fill_blank
+  sentence_build
+  writing_practice
+  srs                                          // new
+}
+```
+
+### SRS Grading (4-button Anki style)
+
+| Button | SM-2 Quality | EF effect | Next interval |
+|--------|-------------|-----------|---------------|
+| Again  | 0 | EF − 0.80 | Reset to 1 day |
+| Hard   | 3 | EF − 0.14 | Modest increase |
+| Good   | 4 | EF ± 0    | Normal increase (×EF) |
+| Easy   | 5 | EF + 0.10 | Large increase |
+
+`correct` in ReviewEvent: `again → false`, `hard/good/easy → true`
+
+### SM-2 algorithm (lib/srs.ts)
+
+```typescript
+// quality < 3: reset repetitions=0, interval=1
+// quality >= 3:
+//   rep 0 → interval=1, rep 1 → interval=6, rep 2+ → interval=round(interval×EF)
+//   repetitions += 1
+// EF = max(1.3, EF + 0.1 − (5−q) × (0.08 + (5−q) × 0.02))
+// nextReviewAt = midnight(today + interval days)
+```
+
+### Routes
+
+```
+/review/srs              → Hub: New count + Review count + Start Session button
+/review/srs/session      → Session: reveal → 4-button grade → update Word SRS state
+```
+
+### Sidebar badge
+
+`app/(app)/layout.tsx` becomes async → fetches `srsDue` count → passes as `srsCount` prop to `Sidebar`. Badge renders next to "SRS Review" nav item when count > 0.
+
+### Files to Create / Modify
+
+| File | Change |
+|------|--------|
+| `prisma/schema.prisma` | Add `srs` to ReviewMode enum; add 4 SRS fields + `@@index` to Word |
+| `lib/srs.ts` | New — pure SM-2 `computeNextSrs(state, grade)` function |
+| `lib/review/pickQuestions.ts` | Add `SrsQuestion` type |
+| `app/actions/srs.ts` | New — `updateWordSRS(wordId, grade)` server action |
+| `app/actions/reviews.ts` | Expand mode union to include `'srs'` |
+| `app/(app)/review/srs/page.tsx` | New — RSC hub (New/Review counts + start button) |
+| `app/(app)/review/srs/session/page.tsx` | New — RSC: fetch due words, pass to client |
+| `app/(app)/review/srs/session/session-client.tsx` | New — reveal + 4-button grade UI, no timer |
+| `app/(app)/layout.tsx` | Convert to async; fetch + pass srsDue count |
+| `components/layout/sidebar.tsx` | Add `srsCount` prop + badge + SRS nav item (BrainCircuit icon) |
+| `lib/stats/queries.ts` | Add `srsDueToday` query to `fetchStats` |
+| `app/(app)/stats/page.tsx` | Add "Due for SRS" HeroCard |
+
+---
+
 ## Future Backlog (not in current scope)
 
-- SRS algorithm (SM-2 like Anki) — add `nextReviewAt` scheduling; review queue shows words due today
-- Writing Practice Mode — 4th review mode: given a word, user writes 1–2 sentences; self-graded
 - Multi-user / public access
 - CSV/JSON import
 - Example translation (Vietnamese)

@@ -34,10 +34,23 @@ export type SentenceBuildQuestion = {
   partOfSpeech: string;
 };
 
+export type WritingPracticeQuestion = {
+  type: 'writing_practice';
+  wordId: string;
+  term: string;
+  imageUrl: string | null;
+  meaning: string;
+  partOfSpeech: string;
+  phonetic: string | null;
+  audioUrl: string | null;
+  exampleSentences: string[];
+};
+
 export type ReviewQuestion =
   | FlashcardQuestion
   | FillBlankQuestion
-  | SentenceBuildQuestion;
+  | SentenceBuildQuestion
+  | WritingPracticeQuestion;
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -48,6 +61,72 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+// Weight based on how recently the word was last reviewed (across all modes).
+// Never reviewed → highest priority; reviewed < 1 hour ago → lowest.
+function recencyWeight(lastReviewedAt: Date | undefined): number {
+  if (!lastReviewedAt) return 10;
+  const hoursAgo = (Date.now() - lastReviewedAt.getTime()) / 3_600_000;
+  if (hoursAgo < 1) return 1;
+  if (hoursAgo < 24) return 3;
+  if (hoursAgo < 72) return 6;
+  return 10;
+}
+
+function weightedSample<T>(
+  items: T[],
+  getWeight: (item: T) => number,
+  n: number
+): T[] {
+  if (n >= items.length) return shuffle(items);
+  const result: T[] = [];
+  const pool = [...items];
+  while (result.length < n && pool.length > 0) {
+    const weights = pool.map(getWeight);
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    let chosen = pool.length - 1;
+    for (let i = 0; i < pool.length; i++) {
+      r -= weights[i];
+      if (r <= 0) {
+        chosen = i;
+        break;
+      }
+    }
+    result.push(pool[chosen]);
+    pool.splice(chosen, 1);
+  }
+  return result;
+}
+
+// Samples `count` items from `eligible`, preferring words reviewed least recently.
+// Items must have a `wordId` field for the recency lookup.
+async function sampleWithRecency<T extends { wordId: string }>(
+  eligible: T[],
+  userId: string,
+  count: number | 'all'
+): Promise<T[]> {
+  if (eligible.length === 0) return [];
+  if (count === 'all') return shuffle(eligible);
+
+  const wordIds = eligible.map((e) => e.wordId);
+  const recentEvents = await db.reviewEvent.findMany({
+    where: { userId, wordId: { in: wordIds } },
+    orderBy: { reviewedAt: 'desc' },
+    distinct: ['wordId'],
+    select: { wordId: true, reviewedAt: true },
+  });
+
+  const lastReviewedMap = new Map<string, Date>(
+    recentEvents.map((e) => [e.wordId, e.reviewedAt])
+  );
+
+  return weightedSample(
+    eligible,
+    (item) => recencyWeight(lastReviewedMap.get(item.wordId)),
+    count
+  );
+}
+
 export async function pickQuestions({
   userId,
   mode,
@@ -55,7 +134,7 @@ export async function pickQuestions({
   count,
 }: {
   userId: string;
-  mode: 'flashcard' | 'fill_blank' | 'sentence_build';
+  mode: 'flashcard' | 'fill_blank' | 'sentence_build' | 'writing_practice';
   categoryId: string;
   count: number | 'all';
 }): Promise<ReviewQuestion[]> {
@@ -73,18 +152,16 @@ export async function pickQuestions({
   });
 
   if (mode === 'flashcard') {
-    const eligible = words.filter((w) => w.contexts.length > 0);
-    if (eligible.length === 0) return [];
+    const eligibleWords = words.filter((w) => w.contexts.length > 0);
+    if (eligibleWords.length === 0) return [];
 
-    const allTerms = eligible.map((w) => w.term);
-    const pool = shuffle(eligible);
-    const selected = count === 'all' ? pool : pool.slice(0, count);
+    const allTerms = eligibleWords.map((w) => w.term);
+    const eligible = eligibleWords.map((w) => ({ wordId: w.id, word: w }));
+    const selected = await sampleWithRecency(eligible, userId, count);
 
-    return selected.map((word): FlashcardQuestion => {
+    return selected.map(({ word }): FlashcardQuestion => {
       const ctx = word.contexts[0];
-      const distractors = shuffle(
-        allTerms.filter((t) => t !== word.term)
-      ).slice(0, 3);
+      const distractors = shuffle(allTerms.filter((t) => t !== word.term)).slice(0, 3);
       const choices = shuffle([word.term, ...distractors]);
 
       return {
@@ -140,18 +217,13 @@ export async function pickQuestions({
       }
 
       if (matchingExamples.length > 0) {
-        eligible.push({
-          wordId: word.id,
-          term: word.term,
-          examples: matchingExamples,
-        });
+        eligible.push({ wordId: word.id, term: word.term, examples: matchingExamples });
       }
     }
 
     if (eligible.length === 0) return [];
 
-    const pool = shuffle(eligible);
-    const selected = count === 'all' ? pool : pool.slice(0, count);
+    const selected = await sampleWithRecency(eligible, userId, count);
 
     return selected.map(({ wordId, term, examples }): FillBlankQuestion => {
       const example = examples[Math.floor(Math.random() * examples.length)];
@@ -170,6 +242,37 @@ export async function pickQuestions({
         meaning: example.meaning,
         phonetic: example.phonetic,
         audioUrl: example.audioUrl,
+      };
+    });
+  } else if (mode === 'writing_practice') {
+    const eligibleWords = words.filter((w) =>
+      w.contexts.some((ctx) => ctx.examples.length > 0)
+    );
+    if (eligibleWords.length === 0) return [];
+
+    const eligible = eligibleWords.map((w) => ({ wordId: w.id, word: w }));
+    const selected = await sampleWithRecency(eligible, userId, count);
+
+    return selected.map(({ word }): WritingPracticeQuestion => {
+      const ctx = word.contexts[0];
+      const sentences: string[] = [];
+      for (const c of word.contexts) {
+        for (const ex of c.examples) {
+          if (sentences.length >= 3) break;
+          sentences.push(ex.text);
+        }
+        if (sentences.length >= 3) break;
+      }
+      return {
+        type: 'writing_practice',
+        wordId: word.id,
+        term: word.term,
+        imageUrl: word.imageUrl,
+        meaning: ctx.meaning,
+        partOfSpeech: ctx.partOfSpeech,
+        phonetic: ctx.phonetic,
+        audioUrl: ctx.audioUrl,
+        exampleSentences: sentences,
       };
     });
   } else {
@@ -220,13 +323,11 @@ export async function pickQuestions({
 
     if (eligible.length === 0) return [];
 
-    const pool = shuffle(eligible);
-    const selected = count === 'all' ? pool : pool.slice(0, count);
+    const selected = await sampleWithRecency(eligible, userId, count);
 
     return selected.map(
       ({ wordId, term, candidates }): SentenceBuildQuestion => {
-        const candidate =
-          candidates[Math.floor(Math.random() * candidates.length)];
+        const candidate = candidates[Math.floor(Math.random() * candidates.length)];
         return {
           type: 'sentence_build',
           wordId,

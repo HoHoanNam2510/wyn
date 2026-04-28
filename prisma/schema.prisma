@@ -24,6 +24,7 @@ enum ReviewMode {
   flashcard
   fill_blank
   sentence_build
+  writing_practice
 }
 
 model User {

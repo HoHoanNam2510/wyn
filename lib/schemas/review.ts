@@ -4,6 +4,7 @@ export const reviewModeValues = [
   'flashcard',
   'fill_blank',
   'sentence_build',
+  'writing_practice',
 ] as const;
 export type ReviewMode = (typeof reviewModeValues)[number];
 

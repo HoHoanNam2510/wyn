@@ -26,8 +26,14 @@ import type {
   FlashcardQuestion,
   FillBlankQuestion,
   SentenceBuildQuestion,
+  WritingPracticeQuestion,
 } from '@/lib/review/pickQuestions';
+import { Textarea } from '@/components/ui/textarea';
 import { logReviewEvent } from '@/app/actions/reviews';
+import {
+  checkWritingSentence,
+  type WritingCheckResult,
+} from '@/app/actions/writing';
 import { AudioButton } from '@/components/ui/audio-button';
 
 const REVIEW_SECS = 15;
@@ -89,7 +95,7 @@ export function SessionClient({
   mode,
 }: {
   questions: ReviewQuestion[];
-  mode: 'flashcard' | 'fill_blank' | 'sentence_build';
+  mode: 'flashcard' | 'fill_blank' | 'sentence_build' | 'writing_practice';
 }) {
   const answerSecs =
     mode === 'sentence_build' ? SENTENCE_BUILD_SECS : ANSWER_SECS;
@@ -102,6 +108,7 @@ export function SessionClient({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [fillInput, setFillInput] = useState('');
   const [sentenceIndices, setSentenceIndices] = useState<number[]>([]);
+  const [writingInput, setWritingInput] = useState('');
   const [done, setDone] = useState(false);
   const [lifelinesUsed, setLifelinesUsed] = useState<Lifelines>(LIFELINES_INIT);
   const [activeHints, setActiveHints] = useState<Lifelines>(LIFELINES_INIT);
@@ -132,6 +139,7 @@ export function SessionClient({
     } else {
       setIndex((i) => i + 1);
       setFillInput('');
+      setWritingInput('');
       setSelectedChoice(null);
       setFeedback(null);
       setPhase('answering');
@@ -161,6 +169,7 @@ export function SessionClient({
   useEffect(() => {
     questionStartRef.current = Date.now();
     if (done) return;
+    if (mode === 'writing_practice') return;
     if (countdownRef.current) clearInterval(countdownRef.current);
 
     countdownRef.current = setInterval(() => {
@@ -217,7 +226,7 @@ export function SessionClient({
       correctAnswer: string;
       userAnswer: string;
       wordId: string;
-      modeVal: 'flashcard' | 'fill_blank' | 'sentence_build';
+      modeVal: 'flashcard' | 'fill_blank' | 'sentence_build' | 'writing_practice';
     }) => {
       const durationMs = Date.now() - questionStartRef.current;
       setFeedback({ correct, correctAnswer });
@@ -420,7 +429,9 @@ export function SessionClient({
       ? 'Flashcard MC'
       : mode === 'fill_blank'
         ? 'Fill in Blank'
-        : 'Sentence Builder';
+        : mode === 'writing_practice'
+          ? 'Writing Practice'
+          : 'Sentence Builder';
 
   // ── Question screen ───────────────────────────────────────────────────────
   return (
@@ -461,6 +472,30 @@ export function SessionClient({
           partialAnswer={partialAnswer}
           onUseLifeline={handleUseLifeline}
         />
+      ) : currentQ.type === 'writing_practice' ? (
+        <WritingPracticeView
+          key={currentQ.wordId}
+          question={currentQ as WritingPracticeQuestion}
+          phase={phase}
+          writingInput={writingInput}
+          onInputChange={setWritingInput}
+          onSubmitWriting={() => setPhase('reviewing')}
+          onGrade={(correct) => {
+            const q = currentQ as WritingPracticeQuestion;
+            const durationMs = Date.now() - questionStartRef.current;
+            setAnswers((prev) => [
+              ...prev,
+              { wordId: q.wordId, term: q.term, correct, userAnswer: writingInput },
+            ]);
+            logReviewEvent({
+              wordId: q.wordId,
+              mode: 'writing_practice',
+              correct,
+              durationMs,
+            }).catch(() => {});
+            handleNext();
+          }}
+        />
       ) : (
         <SentenceBuildView
           question={currentQ as SentenceBuildQuestion}
@@ -473,54 +508,57 @@ export function SessionClient({
         />
       )}
 
-      {/* Countdown progress bar */}
-      <div className="h-1 bg-muted rounded-full overflow-hidden">
-        <div
-          className={cn(
-            'h-full rounded-full transition-all duration-1000 ease-linear',
-            isFeedback ? 'bg-primary' : 'bg-muted-foreground/40'
-          )}
-          style={{
-            width: `${(countdown / (isFeedback ? REVIEW_SECS : answerSecs)) * 100}%`,
-          }}
-        />
-      </div>
-
-      {/* Bottom: keyboard hint + timer / Next button */}
-      {isFeedback ? (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
-            <span>
-              Next in{' '}
-              <span className="font-mono font-semibold text-primary">
-                {countdown}s
-              </span>
-            </span>
-          </div>
-          <Button
-            size="sm"
-            onClick={handleNext}
-            className="bg-primary hover:bg-primary/90 text-white"
-          >
-            Next <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      ) : (
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            {currentQ.type === 'flashcard'
-              ? `Press 1–${(currentQ as FlashcardQuestion).choices.length} to select`
-              : currentQ.type === 'fill_blank'
-                ? 'Press Enter to submit'
-                : 'Click chips to build the sentence'}
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span className="font-mono">{countdown}s</span>
-          </span>
+      {/* Countdown progress bar — hidden for writing_practice */}
+      {mode !== 'writing_practice' && (
+        <div className="h-1 bg-muted rounded-full overflow-hidden">
+          <div
+            className={cn(
+              'h-full rounded-full transition-all duration-1000 ease-linear',
+              isFeedback ? 'bg-primary' : 'bg-muted-foreground/40'
+            )}
+            style={{
+              width: `${(countdown / (isFeedback ? REVIEW_SECS : answerSecs)) * 100}%`,
+            }}
+          />
         </div>
       )}
+
+      {/* Bottom: keyboard hint + timer / Next button — hidden for writing_practice */}
+      {mode !== 'writing_practice' &&
+        (isFeedback ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              <span>
+                Next in{' '}
+                <span className="font-mono font-semibold text-primary">
+                  {countdown}s
+                </span>
+              </span>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleNext}
+              className="bg-primary hover:bg-primary/90 text-white"
+            >
+              Next <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {currentQ.type === 'flashcard'
+                ? `Press 1–${(currentQ as FlashcardQuestion).choices.length} to select`
+                : currentQ.type === 'fill_blank'
+                  ? 'Press Enter to submit'
+                  : 'Click chips to build the sentence'}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              <span className="font-mono">{countdown}s</span>
+            </span>
+          </div>
+        ))}
     </div>
   );
 }
@@ -827,6 +865,222 @@ function FillBlankView({
             </>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Writing Practice sub-component ──────────────────────────────────────────
+
+function HighlightedFeedback({ text, correct }: { text: string; correct: boolean }) {
+  // Only match quotes NOT preceded by a letter (avoids one's, don't, 'll, etc.)
+  const parts = text.split(/((?<![a-zA-Z])'[^']{2,}'(?![a-zA-Z])|"[^"]{2,}")/g);
+  return (
+    <p className="leading-relaxed">
+      {parts.map((part, i) => {
+        const isQuoted =
+          (part.startsWith("'") && part.endsWith("'") && part.length > 2) ||
+          (part.startsWith('"') && part.endsWith('"') && part.length > 2);
+        if (isQuoted) {
+          return (
+            <mark
+              key={i}
+              className={cn(
+                'font-semibold rounded px-0.5 not-italic text-foreground',
+                correct
+                  ? 'bg-green-200/70 dark:bg-green-700/40'
+                  : 'bg-amber-200/70 dark:bg-amber-700/40'
+              )}
+            >
+              {part}
+            </mark>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </p>
+  );
+}
+
+function WritingPracticeView({
+  question,
+  phase,
+  writingInput,
+  onInputChange,
+  onSubmitWriting,
+  onGrade,
+}: {
+  question: WritingPracticeQuestion;
+  phase: 'answering' | 'reviewing';
+  writingInput: string;
+  onInputChange: (v: string) => void;
+  onSubmitWriting: () => void;
+  onGrade: (correct: boolean) => void;
+}) {
+  const [aiResult, setAiResult] = useState<WritingCheckResult | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  async function handleAiCheck() {
+    setAiLoading(true);
+    setAiResult(null);
+    const result = await checkWritingSentence({
+      term: question.term,
+      partOfSpeech: question.partOfSpeech,
+      meaning: question.meaning,
+      sentence: writingInput,
+    });
+    setAiResult(result);
+    setAiLoading(false);
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Word card */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        {question.imageUrl ? (
+          <div className="relative h-40 w-full bg-muted">
+            <Image
+              src={question.imageUrl}
+              alt=""
+              fill
+              sizes="(min-width: 640px) 576px, 100vw"
+              className="object-cover"
+            />
+          </div>
+        ) : null}
+        <div className="px-5 py-4 space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold text-primary">
+              {question.term}
+            </span>
+            <Badge
+              variant="outline"
+              className="text-xs text-primary border-primary/30"
+            >
+              {question.partOfSpeech}
+            </Badge>
+            {question.audioUrl && (
+              <AudioButton
+                url={question.audioUrl}
+                label={`Phát âm ${question.term}`}
+              />
+            )}
+          </div>
+          {question.phonetic && (
+            <p className="text-xs text-muted-foreground italic">
+              {question.phonetic}
+            </p>
+          )}
+          <p className="text-sm text-muted-foreground">{question.meaning}</p>
+        </div>
+      </div>
+
+      {phase === 'answering' ? (
+        <>
+          <Textarea
+            value={writingInput}
+            onChange={(e) => onInputChange(e.target.value)}
+            placeholder="Write 1–2 sentences using this word…"
+            rows={4}
+            className="resize-none text-base"
+          />
+          <Button
+            onClick={onSubmitWriting}
+            disabled={!writingInput.trim()}
+            className="w-full bg-primary hover:bg-primary/90 text-white"
+          >
+            Submit Writing
+          </Button>
+        </>
+      ) : (
+        <>
+          {/* User's writing */}
+          <div className="bg-muted/50 border border-border rounded-lg px-4 py-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              Your writing
+            </p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+              {writingInput || (
+                <span className="italic opacity-50">(empty)</span>
+              )}
+            </p>
+          </div>
+
+          {/* AI feedback */}
+          {aiResult ? (
+            <div
+              className={cn(
+                'flex items-start gap-3 px-4 py-3 rounded-lg border text-sm',
+                aiResult.correct
+                  ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950/30 dark:border-green-800 dark:text-green-300'
+                  : 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300'
+              )}
+            >
+              {aiResult.correct ? (
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              )}
+              <HighlightedFeedback text={aiResult.feedback} correct={aiResult.correct} />
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAiCheck}
+              disabled={aiLoading}
+              className="w-full border-tertiary/40 text-tertiary hover:bg-tertiary/5"
+            >
+              {aiLoading ? (
+                <>
+                  <span className="mr-2 h-3.5 w-3.5 animate-spin rounded-full border-2 border-tertiary border-t-transparent inline-block" />
+                  Checking…
+                </>
+              ) : (
+                <>✦ Check with AI</>
+              )}
+            </Button>
+          )}
+
+          {/* Reference examples */}
+          {question.exampleSentences.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Reference examples
+              </p>
+              {question.exampleSentences.map((sentence, i) => (
+                <div
+                  key={i}
+                  className="border-l-2 border-primary/30 pl-3 py-0.5"
+                >
+                  <p className="text-sm italic text-muted-foreground">
+                    {sentence}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Self-grade buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => onGrade(true)}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-green-500 bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400 font-medium text-sm transition-colors hover:bg-green-100 dark:hover:bg-green-950/50"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Correct ✓
+            </button>
+            <button
+              type="button"
+              onClick={() => onGrade(false)}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 font-medium text-sm transition-colors hover:bg-amber-100 dark:hover:bg-amber-950/50"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Needs Practice
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
