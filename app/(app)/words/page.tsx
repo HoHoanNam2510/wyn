@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { WordListClient } from './word-list-client';
 
 const PAGE_SIZE = 20;
@@ -66,12 +66,20 @@ export default async function WordsPage({ searchParams }: Props) {
             {total} word{total !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button asChild className="bg-primary hover:bg-primary/90 text-white">
-          <Link href="/words/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Add word
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="default">
+            <Link href="/words/import">
+              <Upload className="mr-2 h-4 w-4" />
+              Import JSON
+            </Link>
+          </Button>
+          <Button asChild className="bg-primary hover:bg-primary/90 text-white">
+            <Link href="/words/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Add word
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <WordListClient

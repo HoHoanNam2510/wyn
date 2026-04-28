@@ -110,3 +110,13 @@ export async function deleteWord(wordId: string) {
   revalidatePath('/words');
   return { success: true };
 }
+
+export async function deleteWords(wordIds: string[]) {
+  const userId = await requireUser();
+  if (wordIds.length === 0) return { success: true, count: 0 };
+  const { count } = await db.word.deleteMany({
+    where: { id: { in: wordIds }, userId },
+  });
+  revalidatePath('/words');
+  return { success: true, count };
+}

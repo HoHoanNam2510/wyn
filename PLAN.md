@@ -732,10 +732,74 @@ SRS questions fetched directly in the RSC session page, not through `pickQuestio
 
 ---
 
+## Phase 12 — JSON Import
+
+**Status:** `[x]` Complete
+**Prerequisite:** Phase 11 complete
+
+**Goal:** Bulk import words from a JSON file. User uploads a file → client-side parse + validate → preview table → confirm → server-side batch insert. No DB migration needed (no new models). CSV remains future backlog.
+
+### JSON Format
+
+```json
+[
+  {
+    "term": "eloquent",
+    "imageUrl": "https://...",
+    "categories": ["Academic", "Writing"],
+    "contexts": [
+      {
+        "partOfSpeech": "adjective",
+        "phonetic": "/ˈel.ə.kwənt/",
+        "audioUrl": "https://...",
+        "meaning": "Expressing ideas clearly and effectively",
+        "examples": ["She gave an eloquent speech.", "His writing is eloquent."]
+      }
+    ]
+  }
+]
+```
+
+- `imageUrl`, `phonetic`, `audioUrl`, `categories` are optional
+- `contexts` required (min 1); each context: `partOfSpeech` must match enum, `meaning` required, `examples` min 1
+- Max 500 words per import
+
+### Business Rules
+
+- **Duplicates**: skip words whose `term` already exists (case-insensitive) — same as `createWord`
+- **Unknown categories**: auto-create with default color `#6b7280` rather than failing the import
+- **Error handling**: skip-and-continue per word (one bad word doesn't abort entire import)
+- **Phonetic + audioUrl auto-fetch**: if a context is missing either `phonetic` or `audioUrl` (or both), system fetches from `dictionaryapi.dev` in parallel and applies both fields together (consistency rule). If user provides both → kept as-is. If dict finds nothing → user's partial data preserved. Only override happens when dict returns a valid `audioUrl`.
+
+### UI Flow (4 states)
+
+```
+idle → previewing → importing → done
+```
+
+- **idle**: drop zone (drag-and-drop + click to browse) + divider + paste JSON textarea with clear button (X) + info note about phonetic/audio auto-fill + collapsible JSON format hint
+- **previewing**: table (Term | Part of Speech | Meaning | Categories) + invalid rows error banner + "Import N words" button
+- **importing**: spinner (button disabled)
+- **done**: result card — X created / Y skipped (duplicates) / Z errors
+
+### Files to Create / Modify
+
+| File                                       | Change                                                                                                                                     |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lib/schemas/import.ts`                    | New — Zod schema (`importWordSchema`, `importFileSchema`)                                                                                  |
+| `app/actions/import.ts`                    | New — `importWords(data)` server action → `ImportResult`; parallel `fetchDictionary` for phonetic+audioUrl                                 |
+| `app/(app)/words/import/page.tsx`          | New — RSC wrapper (auth + layout)                                                                                                          |
+| `app/(app)/words/import/import-client.tsx` | New — full client UI (FileReader + paste textarea → parse → preview → action → results)                                                    |
+| `app/(app)/words/page.tsx`                 | Modify — add "Import JSON" button (Upload icon, outline) next to "Add Word"                                                                |
+| `app/actions/words.ts`                     | Add `deleteWords(ids)` server action for bulk delete                                                                                       |
+| `app/(app)/words/word-list-client.tsx`     | Add selection mode (CheckSquare2 toggle), bulk delete action bar + confirmation dialog; fix phonetic display to be independent of audioUrl |
+
+---
+
 ## Future Backlog (not in current scope)
 
 - Multi-user / public access
-- CSV/JSON import
+- CSV import (JSON import done in Phase 12)
 - Example translation (Vietnamese)
 - Offline mode / PWA
 

@@ -68,6 +68,7 @@ IdiomReviewEvent    → id, userId (FK), idiomId (FK), correct (bool), reviewedA
 - [x] **Phase 9** — Idioms & Phrases (`/idioms`): seeded multi-word expressions by category, user-added examples, quiz mode (identify-the-idiom MC); 4 new Prisma models (IdiomCategory, Idiom, IdiomExample, IdiomReviewEvent)
 - [x] **Phase 10** — Writing Practice Mode (`/review` 4th mode): given a word → user writes sentences → optional Groq AI check → self-grades; no timer; adds `writing_practice` to ReviewMode enum; recency-weighted question sampling across all 4 modes
 - [x] **Phase 11** — SRS Algorithm (`/review/srs`): SM-2 spaced repetition scheduling; 4-button Anki grading (Again/Hard/Good/Easy); `nextReviewAt` + SRS fields on Word; sidebar due-count badge; stats integration
+- [x] **Phase 12** — JSON Import (`/words/import`): upload JSON file or paste JSON directly → client-side parse + validate → preview table → batch insert; skip duplicates; auto-create unknown categories; parallel auto-fetch phonetic+audioUrl from dictionary for missing fields; bulk delete (multi-select) on words page; phonetic display independent of audioUrl on word cards
 
 Update with `[x]` when a phase is complete.
 
