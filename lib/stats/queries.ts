@@ -30,6 +30,7 @@ export type StatsData = {
   streak: number;
   totalWords: number;
   masteredWords: number;
+  srsDueToday: number;
   strugglingWords: WordStruggleStat[];
   wordsPerCategory: CategoryStat[];
   grammarTotalAnswers: number;
@@ -87,6 +88,7 @@ export async function fetchStats(userId: string): Promise<StatsData> {
     grammarOverallRaw,
     grammarPerSectionRaw,
     grammarStrugglingRaw,
+    srsDueRaw,
   ] = await Promise.all([
     db.$queryRaw<{ day: string; count: number }[]>`
       SELECT
@@ -209,6 +211,12 @@ export async function fetchStats(userId: string): Promise<StatsData> {
       ORDER BY AVG(CASE WHEN gre.correct THEN 1.0 ELSE 0.0 END) ASC
       LIMIT 5
     `,
+    db.$queryRaw<{ count: number }[]>`
+      SELECT COUNT(*)::int AS count
+      FROM "Word"
+      WHERE "userId" = ${userId}
+        AND ("nextReviewAt" IS NULL OR "nextReviewAt" <= NOW())
+    `,
   ]);
 
   const wordsMap = new Map(wordsRaw.map((r) => [r.day, r.count]));
@@ -239,6 +247,7 @@ export async function fetchStats(userId: string): Promise<StatsData> {
     streak: computeStreak(streakDaysRaw.map((r) => r.day)),
     totalWords,
     masteredWords: masteredCountRaw[0]?.count ?? 0,
+    srsDueToday: srsDueRaw[0]?.count ?? 0,
     strugglingWords: strugglingRaw.map((r) => ({
       wordId: r.wordid,
       term: r.term,

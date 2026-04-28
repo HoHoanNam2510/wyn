@@ -550,17 +550,17 @@ Free-tier Groq API (`llama-3.1-8b-instant`, 14,400 req/day). Opt-in — button o
 
 ### Files Created / Modified
 
-| File | Change |
-|------|--------|
-| `prisma/schema.prisma` | Added `writing_practice` to ReviewMode enum |
-| `lib/schemas/review.ts` | Added `'writing_practice'` to `reviewModeValues` |
-| `lib/review/pickQuestions.ts` | Added `WritingPracticeQuestion` type + branch; recency weighting (see below) |
-| `lib/groq.ts` | New — Groq client singleton |
-| `app/actions/writing.ts` | New — `checkWritingSentence` Server Action (Groq AI eval) |
-| `app/actions/reviews.ts` | Expanded mode union type |
-| `app/(app)/review/session/page.tsx` | Added to validation guard + empty-state message |
+| File                                          | Change                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------- |
+| `prisma/schema.prisma`                        | Added `writing_practice` to ReviewMode enum                                     |
+| `lib/schemas/review.ts`                       | Added `'writing_practice'` to `reviewModeValues`                                |
+| `lib/review/pickQuestions.ts`                 | Added `WritingPracticeQuestion` type + branch; recency weighting (see below)    |
+| `lib/groq.ts`                                 | New — Groq client singleton                                                     |
+| `app/actions/writing.ts`                      | New — `checkWritingSentence` Server Action (Groq AI eval)                       |
+| `app/actions/reviews.ts`                      | Expanded mode union type                                                        |
+| `app/(app)/review/session/page.tsx`           | Added to validation guard + empty-state message                                 |
 | `app/(app)/review/session/session-client.tsx` | Added `WritingPracticeView` + `HighlightedFeedback`; timer bypass for this mode |
-| `app/(app)/review/setup-client.tsx` | Added 4th mode button (PenLine icon); grid → `grid-cols-2 sm:grid-cols-4` |
+| `app/(app)/review/setup-client.tsx`           | Added 4th mode button (PenLine icon); grid → `grid-cols-2 sm:grid-cols-4`       |
 
 ### Review Recency Weighting (addition beyond original scope, applies to all 4 modes)
 
@@ -588,10 +588,22 @@ Weight table:
 
 ## Phase 11 — SRS Algorithm (SM-2)
 
-**Status:** `[ ]` Pending
+**Status:** `[x]` Complete
 **Prerequisite:** Phase 10 complete
 
-**Goal:** Spaced repetition scheduling using SM-2 algorithm. Adds `nextReviewAt` and related fields to `Word`. New `/review/srs` route shows a queue of words due today. Session uses flashcard-style reveal + 4-button Anki grading (Again / Hard / Good / Easy → SM-2 quality 0/3/4/5). Updates word SRS state after each answer and logs to `ReviewEvent`.
+**Goal:** Spaced repetition scheduling using SM-2 algorithm. Adds `nextReviewAt` and related fields to `Word`. New `/review/srs` route shows a queue of words due today. Session uses reveal + 4-button Anki grading (Again / Hard / Good / Easy → SM-2 quality 0/3/4/5). Updates word SRS state after each answer and logs to `ReviewEvent`.
+
+### Nghiệp vụ — Recency Weighting và SRS không xung đột
+
+Hai hệ thống hoạt động trên state khác nhau và route khác nhau:
+
+|                           | Ôn tập thường (`/review`)                 | Ôn tập SRS (`/review/srs`)                      |
+| ------------------------- | ----------------------------------------- | ----------------------------------------------- |
+| Chọn từ dựa trên          | `ReviewEvent.reviewedAt` (Recency Weight) | `Word.nextReviewAt` (lịch SM-2)                 |
+| Cập nhật                  | `ReviewEvent` only                        | `Word` SRS fields + `ReviewEvent` (mode=`srs`)  |
+| Bị ảnh hưởng bởi bên kia? | SRS events làm giảm recency weight (đúng) | Regular events **không bao giờ** chạm SRS state |
+
+**Quy tắc then chốt:** Trả lời trong session thường (`flashcard`, `fill_blank`, v.v.) **KHÔNG** cập nhật `Word.nextReviewAt`. Chỉ SRS grading mới làm điều này.
 
 ### Data Model
 
@@ -617,18 +629,22 @@ enum ReviewMode {
 }
 ```
 
+Migration: `npx prisma migrate dev --name add_srs_fields`
+
 ### SRS Grading (4-button Anki style)
 
-| Button | SM-2 Quality | EF effect | Next interval |
-|--------|-------------|-----------|---------------|
-| Again  | 0 | EF − 0.80 | Reset to 1 day |
-| Hard   | 3 | EF − 0.14 | Modest increase |
-| Good   | 4 | EF ± 0    | Normal increase (×EF) |
-| Easy   | 5 | EF + 0.10 | Large increase |
+| Button | SM-2 Quality | EF effect | Next interval         |
+| ------ | ------------ | --------- | --------------------- |
+| Again  | 0            | EF − 0.80 | Reset to 1 day        |
+| Hard   | 3            | EF − 0.14 | Modest increase       |
+| Good   | 4            | EF ± 0    | Normal increase (×EF) |
+| Easy   | 5            | EF + 0.10 | Large increase        |
 
 `correct` in ReviewEvent: `again → false`, `hard/good/easy → true`
 
-### SM-2 algorithm (lib/srs.ts)
+### SM-2 algorithm (`lib/srs.ts`)
+
+Pure function, no DB access. Export type `SrsGrade = 'again' | 'hard' | 'good' | 'easy'`.
 
 ```typescript
 // quality < 3: reset repetitions=0, interval=1
@@ -639,33 +655,80 @@ enum ReviewMode {
 // nextReviewAt = midnight(today + interval days)
 ```
 
+### SrsQuestion type (`lib/review/pickQuestions.ts`)
+
+```typescript
+type SrsQuestion = {
+  type: 'srs';
+  wordId: string;
+  term: string;
+  imageUrl: string | null;
+  meaning: string;
+  partOfSpeech: string;
+  phonetic: string | null;
+  audioUrl: string | null;
+  exampleSentences: string[]; // up to 3, shown after reveal
+  srsState: { repetitions: number; interval: number; easeFactor: number };
+};
+```
+
+SRS questions fetched directly in the RSC session page, not through `pickQuestions()`.
+
+### `updateWordSRS` server action (`app/actions/srs.ts`)
+
+1. `auth()` — verify session
+2. Fetch Word SRS state + verify `word.userId === userId`
+3. Call `computeNextSrs(state, grade)`
+4. `db.word.update(...)` — write new SRS fields
+5. `db.reviewEvent.create(...)` — log with `mode: 'srs'`, `correct: grade !== 'again'`
+
 ### Routes
 
 ```
-/review/srs              → Hub: New count + Review count + Start Session button
+/review/srs              → Hub: số từ đến hạn + nút bắt đầu
 /review/srs/session      → Session: reveal → 4-button grade → update Word SRS state
 ```
 
+**Hub page** (`app/(app)/review/srs/page.tsx`):
+
+- Nếu có từ đến hạn: thẻ số lượng + "Bắt đầu ôn tập" → `/review/srs/session`
+- Nếu không có: "Đã ôn xong!" + thời điểm đến hạn tiếp theo (`min(nextReviewAt)`)
+- Hiển thị tổng số từ đã đăng ký SRS (có `nextReviewAt != null`)
+
+**Session RSC** (`app/(app)/review/srs/session/page.tsx`):
+
+- Fetch TẤT CẢ từ đến hạn (không giới hạn — SRS xử lý hết hàng đợi ngày)
+- Mỗi từ: join Context đầu tiên + tối đa 3 Example
+- Nếu không có từ: redirect về `/review/srs`
+
+**Session Client** (`app/(app)/review/srs/session/session-client.tsx`) — không timer, không tự động chuyển:
+
+- Phase `revealing`: thẻ từ (term, phonetic, AudioButton, hình, meaning) + nút "Xem đáp án"
+- Phase `grading`: câu ví dụ tham khảo + 4 nút chấm điểm (Again/Hard/Good/Easy)
+- Summary: tổng số ôn, phân bổ điểm (Again/Hard/Good/Easy), thời gian phiên — không có "Thử lại"
+
 ### Sidebar badge
 
-`app/(app)/layout.tsx` becomes async → fetches `srsDue` count → passes as `srsCount` prop to `Sidebar`. Badge renders next to "SRS Review" nav item when count > 0.
+`app/(app)/layout.tsx` becomes async → fetches `srsDue` count → passes as `srsCount` prop to `Sidebar`. Badge renders next to "SRS Review" nav item (BrainCircuit icon) when count > 0.
 
 ### Files to Create / Modify
 
-| File | Change |
-|------|--------|
-| `prisma/schema.prisma` | Add `srs` to ReviewMode enum; add 4 SRS fields + `@@index` to Word |
-| `lib/srs.ts` | New — pure SM-2 `computeNextSrs(state, grade)` function |
-| `lib/review/pickQuestions.ts` | Add `SrsQuestion` type |
-| `app/actions/srs.ts` | New — `updateWordSRS(wordId, grade)` server action |
-| `app/actions/reviews.ts` | Expand mode union to include `'srs'` |
-| `app/(app)/review/srs/page.tsx` | New — RSC hub (New/Review counts + start button) |
-| `app/(app)/review/srs/session/page.tsx` | New — RSC: fetch due words, pass to client |
-| `app/(app)/review/srs/session/session-client.tsx` | New — reveal + 4-button grade UI, no timer |
-| `app/(app)/layout.tsx` | Convert to async; fetch + pass srsDue count |
-| `components/layout/sidebar.tsx` | Add `srsCount` prop + badge + SRS nav item (BrainCircuit icon) |
-| `lib/stats/queries.ts` | Add `srsDueToday` query to `fetchStats` |
-| `app/(app)/stats/page.tsx` | Add "Due for SRS" HeroCard |
+| File                                              | Change                                                              |
+| ------------------------------------------------- | ------------------------------------------------------------------- |
+| `prisma/schema.prisma`                            | Add `srs` to ReviewMode enum; add 4 SRS fields + `@@index` to Word  |
+| `lib/srs.ts`                                      | New — pure SM-2 `computeNextSrs(state, grade)` + `SrsGrade` type    |
+| `lib/review/pickQuestions.ts`                     | Add `SrsQuestion` type export                                       |
+| `app/actions/srs.ts`                              | New — `updateWordSRS(wordId, grade)` server action                  |
+| `app/actions/reviews.ts`                          | Expand mode union to include `'srs'`                                |
+| `app/(app)/review/srs/page.tsx`                   | New — RSC hub (due count + next due time + start button)            |
+| `app/(app)/review/srs/session/page.tsx`           | New — RSC: fetch all due words as `SrsQuestion[]`                   |
+| `app/(app)/review/srs/session/session-client.tsx` | New — reveal + 4-button grade UI, no timer, summary with grade dist |
+| `app/(app)/layout.tsx`                            | Convert to async; fetch + pass srsDue count to Sidebar              |
+| `components/layout/sidebar.tsx`                   | Add `srsCount` prop + badge + SRS nav item (BrainCircuit icon)      |
+| `lib/stats/queries.ts`                            | Add `srsDueToday` query to `fetchStats`                             |
+| `app/(app)/stats/page.tsx`                        | Add "Due for SRS" HeroCard                                          |
+| `CLAUDE.md`                                       | Mark Phase 11 complete; update Word + ReviewMode in data model      |
+| `PLAN.md`                                         | Mark Phase 11 complete                                              |
 
 ---
 

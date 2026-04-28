@@ -34,11 +34,13 @@ Claude is a **co-developer**, NOT an assistant that blindly follows orders. The 
 ```
 User                → id, email, name, image, createdAt
 Word                → id, userId (FK), term, imageUrl (Unsplash, optional), createdAt, updatedAt
+                      [Phase 11] nextReviewAt (DateTime?), srsInterval (Int), srsEaseFactor (Float), srsRepetitions (Int)
 Context             → id, wordId (FK), partOfSpeech (enum), phonetic, audioUrl, meaning (text), order (int)
 Example             → id, contextId (FK), text
 Category            → id, userId (FK), name, color
 WordCategory        → wordId + categoryId (composite PK — join table for M:N)
-ReviewEvent         → id, userId, wordId, mode (flashcard | fill_blank | sentence_build | writing_practice), correct (bool), reviewedAt, durationMs
+ReviewEvent         → id, userId, wordId, mode (flashcard | fill_blank | sentence_build | writing_practice | srs*), correct (bool), reviewedAt, durationMs
+                      (* srs mode added in Phase 11)
 GrammarSection      → id, title, order
 GrammarPattern      → id, sectionId (FK), title, formula (Json = FormulaChunk[]), notes, order
 GrammarExample      → id, patternId (FK), userId (FK, nullable — null = seeded), sentence, createdAt
@@ -65,7 +67,7 @@ IdiomReviewEvent    → id, userId (FK), idiomId (FK), correct (bool), reviewedA
 - [x] **Phase 8** — Text Scanner (`/text-scanner`): paste any English text → highlight mastered/learning/unknown words → click unknown to add; no new DB table, client-side matching against server-fetched word map
 - [x] **Phase 9** — Idioms & Phrases (`/idioms`): seeded multi-word expressions by category, user-added examples, quiz mode (identify-the-idiom MC); 4 new Prisma models (IdiomCategory, Idiom, IdiomExample, IdiomReviewEvent)
 - [x] **Phase 10** — Writing Practice Mode (`/review` 4th mode): given a word → user writes sentences → optional Groq AI check → self-grades; no timer; adds `writing_practice` to ReviewMode enum; recency-weighted question sampling across all 4 modes
-- [ ] **Phase 11** — SRS Algorithm (`/review/srs`): SM-2 spaced repetition scheduling; 4-button Anki grading (Again/Hard/Good/Easy); `nextReviewAt` + SRS fields on Word; sidebar due-count badge; stats integration
+- [x] **Phase 11** — SRS Algorithm (`/review/srs`): SM-2 spaced repetition scheduling; 4-button Anki grading (Again/Hard/Good/Easy); `nextReviewAt` + SRS fields on Word; sidebar due-count badge; stats integration
 
 Update with `[x]` when a phase is complete.
 

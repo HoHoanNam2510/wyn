@@ -46,6 +46,19 @@ export type WritingPracticeQuestion = {
   exampleSentences: string[];
 };
 
+export type SrsQuestion = {
+  type: 'srs';
+  wordId: string;
+  term: string;
+  imageUrl: string | null;
+  meaning: string;
+  partOfSpeech: string;
+  phonetic: string | null;
+  audioUrl: string | null;
+  exampleSentences: string[];
+  srsState: { repetitions: number; interval: number; easeFactor: number };
+};
+
 export type ReviewQuestion =
   | FlashcardQuestion
   | FillBlankQuestion
@@ -161,7 +174,9 @@ export async function pickQuestions({
 
     return selected.map(({ word }): FlashcardQuestion => {
       const ctx = word.contexts[0];
-      const distractors = shuffle(allTerms.filter((t) => t !== word.term)).slice(0, 3);
+      const distractors = shuffle(
+        allTerms.filter((t) => t !== word.term)
+      ).slice(0, 3);
       const choices = shuffle([word.term, ...distractors]);
 
       return {
@@ -217,7 +232,11 @@ export async function pickQuestions({
       }
 
       if (matchingExamples.length > 0) {
-        eligible.push({ wordId: word.id, term: word.term, examples: matchingExamples });
+        eligible.push({
+          wordId: word.id,
+          term: word.term,
+          examples: matchingExamples,
+        });
       }
     }
 
@@ -327,7 +346,8 @@ export async function pickQuestions({
 
     return selected.map(
       ({ wordId, term, candidates }): SentenceBuildQuestion => {
-        const candidate = candidates[Math.floor(Math.random() * candidates.length)];
+        const candidate =
+          candidates[Math.floor(Math.random() * candidates.length)];
         return {
           type: 'sentence_build',
           wordId,

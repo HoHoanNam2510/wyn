@@ -189,7 +189,7 @@ export function SessionClient({
         countdownRef.current = null;
       }
     };
-  }, [index, done]);
+  }, [index, done, mode]);
 
   // When countdown hits 0 → advance (both phases)
   useEffect(() => {
@@ -226,7 +226,11 @@ export function SessionClient({
       correctAnswer: string;
       userAnswer: string;
       wordId: string;
-      modeVal: 'flashcard' | 'fill_blank' | 'sentence_build' | 'writing_practice';
+      modeVal:
+        | 'flashcard'
+        | 'fill_blank'
+        | 'sentence_build'
+        | 'writing_practice';
     }) => {
       const durationMs = Date.now() - questionStartRef.current;
       setFeedback({ correct, correctAnswer });
@@ -485,7 +489,12 @@ export function SessionClient({
             const durationMs = Date.now() - questionStartRef.current;
             setAnswers((prev) => [
               ...prev,
-              { wordId: q.wordId, term: q.term, correct, userAnswer: writingInput },
+              {
+                wordId: q.wordId,
+                term: q.term,
+                correct,
+                userAnswer: writingInput,
+              },
             ]);
             logReviewEvent({
               wordId: q.wordId,
@@ -872,7 +881,13 @@ function FillBlankView({
 
 // ── Writing Practice sub-component ──────────────────────────────────────────
 
-function HighlightedFeedback({ text, correct }: { text: string; correct: boolean }) {
+function HighlightedFeedback({
+  text,
+  correct,
+}: {
+  text: string;
+  correct: boolean;
+}) {
   // Only match quotes NOT preceded by a letter (avoids one's, don't, 'll, etc.)
   const parts = text.split(/((?<![a-zA-Z])'[^']{2,}'(?![a-zA-Z])|"[^"]{2,}")/g);
   return (
@@ -1021,7 +1036,10 @@ function WritingPracticeView({
               ) : (
                 <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
               )}
-              <HighlightedFeedback text={aiResult.feedback} correct={aiResult.correct} />
+              <HighlightedFeedback
+                text={aiResult.feedback}
+                correct={aiResult.correct}
+              />
             </div>
           ) : (
             <Button

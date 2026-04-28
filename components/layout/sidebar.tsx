@@ -13,6 +13,7 @@ import {
   BookMarked,
   ScanText,
   Lightbulb,
+  BrainCircuit,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,10 +27,49 @@ const navItems = [
   { href: '/idioms', label: 'Idioms', icon: Lightbulb },
   { href: '/text-scanner', label: 'Text Scanner', icon: ScanText },
   { href: '/review', label: 'Review', icon: RotateCcw },
+  { href: '/review/srs', label: 'SRS Review', icon: BrainCircuit },
   { href: '/stats', label: 'Stats', icon: BarChart3 },
 ];
 
-export function Sidebar() {
+function NavItems({
+  pathname,
+  srsCount,
+}: {
+  pathname: string;
+  srsCount: number;
+}) {
+  // Use the most specific matching href so /review/srs doesn't also highlight /review
+  const activeHref = navItems
+    .filter(({ href }) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
+  return navItems.map(({ href, label, icon: Icon }) => {
+    const active = href === activeHref;
+    const isSrs = href === '/review/srs';
+    return (
+      <Link
+        key={href}
+        href={href}
+        className={cn(
+          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+          active
+            ? 'bg-accent text-accent-foreground'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        )}
+      >
+        <Icon className={cn('h-4 w-4 shrink-0', active && 'text-primary')} />
+        <span className="flex-1">{label}</span>
+        {isSrs && srsCount > 0 && (
+          <span className="min-w-5 h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+            {srsCount > 99 ? '99+' : srsCount}
+          </span>
+        )}
+      </Link>
+    );
+  });
+}
+
+export function Sidebar({ srsCount = 0 }: { srsCount?: number }) {
   const pathname = usePathname();
   const { isOpen, close } = useSidebar();
 
@@ -82,26 +122,7 @@ export function Sidebar() {
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                <Icon
-                  className={cn('h-4 w-4 shrink-0', active && 'text-primary')}
-                />
-                {label}
-              </Link>
-            );
-          })}
+          <NavItems pathname={pathname} srsCount={srsCount} />
         </nav>
       </aside>
     </>

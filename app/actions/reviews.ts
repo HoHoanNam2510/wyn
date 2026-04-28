@@ -10,7 +10,12 @@ export async function logReviewEvent({
   durationMs,
 }: {
   wordId: string;
-  mode: 'flashcard' | 'fill_blank' | 'sentence_build' | 'writing_practice';
+  mode:
+    | 'flashcard'
+    | 'fill_blank'
+    | 'sentence_build'
+    | 'writing_practice'
+    | 'srs';
   correct: boolean;
   durationMs: number;
 }) {

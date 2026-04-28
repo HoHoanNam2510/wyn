@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Zap,
   Target,
+  BrainCircuit,
 } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { fetchStats } from '@/lib/stats/queries';
@@ -141,7 +142,7 @@ export default async function StatsPage() {
       </div>
 
       {/* Hero metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <HeroCard
           label="Total words"
           value={stats.totalWords}
@@ -159,6 +160,12 @@ export default async function StatsPage() {
           value={stats.masteredWords}
           icon={<Trophy className="h-5 w-5" />}
           accent={stats.masteredWords > 0}
+        />
+        <HeroCard
+          label="SRS due today"
+          value={stats.srsDueToday}
+          icon={<BrainCircuit className="h-5 w-5" />}
+          accent={stats.srsDueToday > 0}
         />
       </div>
 

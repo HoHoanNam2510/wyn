@@ -25,6 +25,7 @@ enum ReviewMode {
   fill_blank
   sentence_build
   writing_practice
+  srs
 }
 
 model User {
@@ -78,16 +79,22 @@ model VerificationToken {
 }
 
 model Word {
-  id         String         @id @default(cuid())
-  userId     String
-  term       String
-  imageUrl   String?
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contexts   Context[]
-  categories WordCategory[]
-  reviews    ReviewEvent[]
+  id              String         @id @default(cuid())
+  userId          String
+  term            String
+  imageUrl        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  nextReviewAt    DateTime?
+  srsInterval     Int            @default(1)
+  srsEaseFactor   Float          @default(2.5)
+  srsRepetitions  Int            @default(0)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contexts        Context[]
+  categories      WordCategory[]
+  reviews         ReviewEvent[]
+
+  @@index([userId, nextReviewAt])
 }
 
 model Context {
