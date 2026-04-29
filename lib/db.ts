@@ -2,14 +2,26 @@ import { PrismaClient } from '@/app/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
-function withConnectTimeout(url: string | undefined): string | undefined {
-  if (!url || url.includes('connect_timeout')) return url;
-  return url + (url.includes('?') ? '&' : '?') + 'connect_timeout=30';
+function buildConnectionString(url: string | undefined): string | undefined {
+  if (!url) return url;
+  try {
+    const u = new URL(url);
+    // Remove sslmode from URL — ssl is handled via the Pool ssl option below
+    // to avoid pg deprecation warning about sslmode=require semantics
+    u.searchParams.delete('sslmode');
+    if (!u.searchParams.has('connect_timeout')) {
+      u.searchParams.set('connect_timeout', '30');
+    }
+    return u.toString();
+  } catch {
+    return url;
+  }
 }
 
 function createPrismaClient() {
   const pool = new Pool({
-    connectionString: withConnectTimeout(process.env.DATABASE_URL),
+    connectionString: buildConnectionString(process.env.DATABASE_URL),
+    ssl: { rejectUnauthorized: true },
     max: 3,
     connectionTimeoutMillis: 30_000,
     idleTimeoutMillis: 30_000,
