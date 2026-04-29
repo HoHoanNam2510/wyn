@@ -2,9 +2,22 @@
 
 import { useState, useTransition } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
-import { Download, Trash2, User } from 'lucide-react';
+import {
+  Download,
+  Trash2,
+  User,
+  Sun,
+  Moon,
+  Monitor,
+  Pencil,
+  Check,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +26,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { deleteAccount, exportData } from '@/app/actions/account';
+import {
+  deleteAccount,
+  exportData,
+  updateDisplayName,
+} from '@/app/actions/account';
 
 type Props = {
   user: { name: string | null; email: string | null; image: string | null };
@@ -21,9 +38,17 @@ type Props = {
 };
 
 export function SettingsClient({ user, stats }: Props) {
+  const router = useRouter();
+  const { theme, setTheme } = useTheme();
+
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isExporting, startExport] = useTransition();
   const [isDeleting, startDelete] = useTransition();
+
+  // Inline name edit state
+  const [editing, setEditing] = useState(false);
+  const [nameInput, setNameInput] = useState(user.name ?? '');
+  const [isSavingName, startSaveName] = useTransition();
 
   function handleExport() {
     startExport(async () => {
@@ -56,6 +81,30 @@ export function SettingsClient({ user, stats }: Props) {
     });
   }
 
+  function handleSaveName() {
+    startSaveName(async () => {
+      const result = await updateDisplayName(nameInput);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success('Name updated');
+      setEditing(false);
+      router.refresh();
+    });
+  }
+
+  function handleCancelEdit() {
+    setNameInput(user.name ?? '');
+    setEditing(false);
+  }
+
+  const themeOptions = [
+    { value: 'light', label: 'Light', icon: Sun },
+    { value: 'dark', label: 'Dark', icon: Moon },
+    { value: 'system', label: 'System', icon: Monitor },
+  ] as const;
+
   return (
     <div className="space-y-6">
       {/* Profile */}
@@ -77,14 +126,83 @@ export function SettingsClient({ user, stats }: Props) {
               <User className="h-6 w-6 text-white" />
             </div>
           )}
-          <div>
-            <p className="font-medium">{user.name ?? '—'}</p>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+          <div className="flex-1 min-w-0">
+            {editing ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className="h-8 text-sm"
+                  maxLength={60}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName();
+                    if (e.key === 'Escape') handleCancelEdit();
+                  }}
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-primary shrink-0"
+                  onClick={handleSaveName}
+                  disabled={isSavingName}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 shrink-0"
+                  onClick={handleCancelEdit}
+                  disabled={isSavingName}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <p className="font-medium truncate">{user.name ?? '—'}</p>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0"
+                  onClick={() => setEditing(true)}
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground truncate">
+              {user.email}
+            </p>
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          Profile information is synced from your Google account.
+          Profile picture is synced from your Google account.
         </p>
+      </section>
+
+      {/* Appearance */}
+      <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Appearance
+        </h2>
+        <div className="flex gap-2">
+          {themeOptions.map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              onClick={() => setTheme(value)}
+              className={`flex-1 flex flex-col items-center gap-1.5 rounded-lg border py-3 px-2 text-xs font-medium transition-colors ${
+                theme === value
+                  ? 'border-primary bg-accent text-primary'
+                  : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
+        </div>
       </section>
 
       {/* Data */}

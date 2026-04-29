@@ -12,7 +12,11 @@ export default async function SettingsPage() {
 
   const userId = session.user.id;
 
-  const [wordCount, categoryCount] = await Promise.all([
+  const [user, wordCount, categoryCount] = await Promise.all([
+    db.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true, image: true },
+    }),
     db.word.count({ where: { userId } }),
     db.category.count({ where: { userId } }),
   ]);
@@ -22,15 +26,15 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Manage your account and data.
+          Manage your account and preferences.
         </p>
       </div>
 
       <SettingsClient
         user={{
-          name: session.user.name ?? null,
-          email: session.user.email ?? null,
-          image: session.user.image ?? null,
+          name: user?.name ?? null,
+          email: user?.email ?? null,
+          image: user?.image ?? null,
         }}
         stats={{ wordCount, categoryCount }}
       />
