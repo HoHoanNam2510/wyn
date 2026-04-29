@@ -18,6 +18,7 @@ export async function proxy(request: NextRequest) {
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
+    secureCookie: request.nextUrl.protocol === 'https:',
   });
   const isLoggedIn = !!token;
   const { pathname } = request.nextUrl;
