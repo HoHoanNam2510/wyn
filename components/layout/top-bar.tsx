@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { auth, signOut } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,6 +45,12 @@ export async function TopBar() {
                   {user.email}
                 </p>
               </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/settings" className="cursor-pointer text-sm">
+                  Settings
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <form

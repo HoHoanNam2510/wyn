@@ -27,6 +27,13 @@ export async function createWord(raw: unknown) {
   });
   if (existing) throw new Error(`DUPLICATE_WORD:${existing.id}`);
 
+  if (data.categoryIds.length > 0) {
+    const owned = await db.category.count({
+      where: { id: { in: data.categoryIds }, userId },
+    });
+    if (owned !== data.categoryIds.length) throw new Error('Invalid category');
+  }
+
   const word = await db.word.create({
     data: {
       userId,
@@ -61,6 +68,13 @@ export async function updateWord(wordId: string, raw: unknown) {
 
   const word = await db.word.findFirst({ where: { id: wordId, userId } });
   if (!word) throw new Error('Word not found');
+
+  if (data.categoryIds.length > 0) {
+    const owned = await db.category.count({
+      where: { id: { in: data.categoryIds }, userId },
+    });
+    if (owned !== data.categoryIds.length) throw new Error('Invalid category');
+  }
 
   const duplicate = await db.word.findFirst({
     where: {

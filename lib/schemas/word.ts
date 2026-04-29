@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+const safeUrl = z
+  .string()
+  .url()
+  .refine((u) => /^https?:\/\//i.test(u), {
+    message: 'Only http/https URLs are allowed',
+  });
+
 export const partOfSpeechValues = [
   'noun',
   'verb',
@@ -22,7 +29,7 @@ export const contextSchema = z.object({
   id: z.string().optional(),
   partOfSpeech: z.enum(partOfSpeechValues),
   phonetic: z.string().optional(),
-  audioUrl: z.string().url().optional().or(z.literal('')),
+  audioUrl: safeUrl.optional().or(z.literal('')),
   meaning: z.string().min(1, 'Meaning is required'),
   order: z.number().int().optional(),
   examples: z.array(exampleSchema).min(1, 'At least one example is required'),
@@ -30,7 +37,7 @@ export const contextSchema = z.object({
 
 export const wordSchema = z.object({
   term: z.string().min(1, 'Term is required').max(100),
-  imageUrl: z.string().url().optional().or(z.literal('')),
+  imageUrl: safeUrl.optional().or(z.literal('')),
   categoryIds: z.array(z.string()),
   contexts: z.array(contextSchema).min(1, 'At least one context is required'),
 });

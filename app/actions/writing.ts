@@ -1,6 +1,8 @@
 'use server';
 
+import { auth } from '@/lib/auth';
 import { groq } from '@/lib/groq';
+import { rateLimit, RATE_LIMITS } from '@/lib/rateLimit';
 
 export type WritingCheckResult = {
   correct: boolean;
@@ -18,6 +20,22 @@ export async function checkWritingSentence({
   meaning: string;
   sentence: string;
 }): Promise<WritingCheckResult> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+
+  const allowed = rateLimit(
+    `groqWriting:${session.user.id}`,
+    RATE_LIMITS.groqWriting.limit,
+    RATE_LIMITS.groqWriting.windowMs
+  );
+  if (!allowed) {
+    return {
+      correct: false,
+      feedback:
+        'Daily AI check limit reached. Please self-evaluate your sentence.',
+    };
+  }
+
   const prompt = `You are an English writing coach. A learner wrote a sentence to practice the word "${term}" (${partOfSpeech}: ${meaning}).
 
 Their sentence: "${sentence}"

@@ -16,8 +16,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'VocabApp',
-  description: 'Personal English vocabulary learning app',
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3108'
+  ),
+  title: { default: 'Wyn', template: '%s · Wyn' },
+  description:
+    'Personal English vocabulary learning with spaced repetition, grammar, and idioms.',
+  openGraph: {
+    title: 'Wyn',
+    description:
+      'Personal English vocabulary learning with spaced repetition, grammar, and idioms.',
+    type: 'website',
+    siteName: 'Wyn',
+  },
+  twitter: { card: 'summary_large_image' },
+  icons: { icon: '/icon.png' },
 };
 
 export default function RootLayout({

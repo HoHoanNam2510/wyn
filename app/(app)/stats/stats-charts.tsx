@@ -15,7 +15,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
 } from 'recharts';
 import type {
   DayStat,
@@ -202,6 +201,8 @@ export function GrammarSectionAccuracyChart({
   );
 }
 
+const MAX_LEGEND = 8;
+
 export function CategoryDonutChart({ data }: { data: CategoryStat[] }) {
   if (data.length === 0) {
     return (
@@ -211,33 +212,53 @@ export function CategoryDonutChart({ data }: { data: CategoryStat[] }) {
     );
   }
 
+  const visibleItems =
+    data.length > MAX_LEGEND ? data.slice(0, MAX_LEGEND - 1) : data;
+  const overflow =
+    data.length > MAX_LEGEND ? data.length - (MAX_LEGEND - 1) : 0;
+
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="45%"
-          innerRadius={52}
-          outerRadius={78}
-          dataKey="count"
-          nameKey="name"
-          paddingAngle={2}
-        >
-          {data.map((entry, i) => (
-            <Cell key={i} fill={entry.color} />
-          ))}
-        </Pie>
-        <Tooltip
-          formatter={(value, name) => [value, name]}
-          contentStyle={tooltipStyle}
-        />
-        <Legend
-          iconType="circle"
-          iconSize={8}
-          wrapperStyle={{ fontSize: 12, color: TICK_COLOR }}
-        />
-      </PieChart>
-    </ResponsiveContainer>
+    <div className="flex flex-col gap-2">
+      <ResponsiveContainer width="100%" height={200}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={52}
+            outerRadius={78}
+            dataKey="count"
+            nameKey="name"
+            paddingAngle={2}
+          >
+            {data.map((entry, i) => (
+              <Cell key={i} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip
+            formatter={(value, name) => [value, name]}
+            contentStyle={tooltipStyle}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 px-2 pb-1">
+        {visibleItems.map((item, i) => (
+          <div key={i} className="flex items-center gap-1">
+            <span
+              className="inline-block rounded-full shrink-0"
+              style={{ width: 8, height: 8, backgroundColor: item.color }}
+            />
+            <span className="text-[11px]" style={{ color: TICK_COLOR }}>
+              {item.name}
+            </span>
+          </div>
+        ))}
+        {overflow > 0 && (
+          <span className="text-[11px]" style={{ color: TICK_COLOR }}>
+            +{overflow} more
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

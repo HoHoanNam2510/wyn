@@ -144,6 +144,8 @@ model ReviewEvent {
   durationMs Int
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   word       Word       @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@index([userId, reviewedAt])
 }
 
 model GrammarSection {
@@ -184,6 +186,8 @@ model GrammarReviewEvent {
   durationMs Int
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   pattern    GrammarPattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+
+  @@index([userId, reviewedAt])
 }
 
 model IdiomCategory {
@@ -225,4 +229,6 @@ model IdiomReviewEvent {
   durationMs Int
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   idiom      Idiom    @relation(fields: [idiomId], references: [id], onDelete: Cascade)
+
+  @@index([userId, reviewedAt])
 }

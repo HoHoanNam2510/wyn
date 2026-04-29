@@ -14,6 +14,7 @@ import {
   ScanText,
   Lightbulb,
   BrainCircuit,
+  Settings,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,7 @@ const navItems = [
   { href: '/review', label: 'Review', icon: RotateCcw },
   { href: '/review/srs', label: 'SRS Review', icon: BrainCircuit },
   { href: '/stats', label: 'Stats', icon: BarChart3 },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 function NavItems({
@@ -124,6 +126,21 @@ export function Sidebar({ srsCount = 0 }: { srsCount?: number }) {
         <nav className="flex-1 p-3 space-y-1">
           <NavItems pathname={pathname} srsCount={srsCount} />
         </nav>
+
+        <div className="p-3 border-t border-border flex gap-3 text-xs text-muted-foreground">
+          <Link
+            href="/privacy"
+            className="hover:text-foreground transition-colors"
+          >
+            Privacy
+          </Link>
+          <Link
+            href="/terms"
+            className="hover:text-foreground transition-colors"
+          >
+            Terms
+          </Link>
+        </div>
       </aside>
     </>
   );

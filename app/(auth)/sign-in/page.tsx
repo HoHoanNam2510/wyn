@@ -7,10 +7,10 @@ export default function SignInPage() {
       <div className="w-full max-w-sm space-y-8 px-4">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-primary">
-            VocabApp
+            Wyn
           </h1>
           <p className="text-muted-foreground text-sm">
-            Your personal English vocabulary journal
+            Your personal English vocabulary app
           </p>
         </div>
 

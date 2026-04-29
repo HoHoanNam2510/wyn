@@ -8,6 +8,10 @@ const PROTECTED_PATHS = [
   '/categories',
   '/review',
   '/stats',
+  '/settings',
+  '/grammar',
+  '/idioms',
+  '/text-scanner',
 ];
 
 export async function proxy(request: NextRequest) {
