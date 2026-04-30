@@ -7,14 +7,15 @@
 
 ## Tổng quan
 
-| Thành phần | Chi tiết |
-|---|---|
-| Hosting | Vercel (free tier) |
-| Domain hiện tại | `https://wyn-nine.vercel.app` |
-| Git repo | GitHub → `HoHoanNam2510/wyn` |
-| Error tracking | Sentry (`wyn-1q` org, project `javascript-nextjs`) |
-| Database | Neon Postgres (giữ nguyên từ trước) |
-| Auth | Auth.js v5 + Google OAuth |
+| Thành phần      | Chi tiết                                                               |
+| --------------- | ---------------------------------------------------------------------- |
+| Hosting         | Vercel (free tier)                                                     |
+| Domain hiện tại | `https://wynvocab.site` (custom domain — mua tại Namecheap 30/04/2026) |
+| Domain cũ       | `https://wyn-nine.vercel.app` (vẫn hoạt động)                          |
+| Git repo        | GitHub → `HoHoanNam2510/wyn`                                           |
+| Error tracking  | Sentry (`wyn-1q` org, project `javascript-nextjs`)                     |
+| Database        | Neon Postgres (giữ nguyên từ trước)                                    |
+| Auth            | Auth.js v5 + Google OAuth                                              |
 
 ---
 
@@ -25,6 +26,7 @@ Tất cả code dưới đây đã được commit vào branch `main` và deploy
 ### B1 — Error tracking (Sentry) + Analytics
 
 **Packages đã thêm:**
+
 ```
 @sentry/nextjs
 @vercel/analytics
@@ -32,6 +34,7 @@ Tất cả code dưới đây đã được commit vào branch `main` và deploy
 ```
 
 **Files được tạo/sửa:**
+
 - `sentry.client.config.ts` — Sentry khởi tạo phía trình duyệt
 - `sentry.server.config.ts` — Sentry khởi tạo phía server
 - `sentry.edge.config.ts` — Sentry khởi tạo phía edge runtime
@@ -44,6 +47,7 @@ Tất cả code dưới đây đã được commit vào branch `main` và deploy
 **File sửa:** `app/(app)/dashboard/page.tsx`
 
 Khi user chưa có từ nào (`wordCount === 0`), hiển thị component `OnboardingView` gồm:
+
 - 3 bước hướng dẫn (Add word → Create category → Start reviewing)
 - Mỗi bước có icon trạng thái, mô tả, và nút CTA
 - Card "Prefer to import?" dẫn đến `/words/import`
@@ -53,11 +57,13 @@ Khi đã có từ: hiển thị dashboard bình thường với stats + quick ac
 ### B3 — Profile edit + Theme picker (Settings)
 
 **Files sửa:**
+
 - `app/(app)/settings/settings-client.tsx` — Thêm inline name edit + theme picker
 - `app/(app)/settings/page.tsx` — Đọc user từ DB thay vì session (để `router.refresh()` hoạt động)
 - `app/actions/account.ts` — Thêm server action `updateDisplayName()`
 
 **Cách hoạt động:**
+
 - Bấm icon bút chì cạnh tên → input xuất hiện
 - Enter hoặc click ✓ → gọi server action → `revalidatePath('/settings')` + `router.refresh()`
 - Theme picker: Light / Dark / System bằng `useTheme()` từ `next-themes`
@@ -74,6 +80,7 @@ Cả hai dùng `NEXT_PUBLIC_APP_URL` từ env vars. **Cần cập nhật biến 
 **File tạo:** `.github/workflows/ci.yml`
 
 Tự động chạy khi push hoặc PR vào `main`:
+
 1. Lint (`npm run lint`)
 2. Type check (`npx tsc --noEmit`)
 3. Validate Prisma schema (`npx prisma validate`)
@@ -87,27 +94,28 @@ Build thật sự do Vercel đảm nhiệm (không cần chạy trong CI).
 
 ### Trên Vercel (Settings → Environment Variables)
 
-| Biến | Lấy ở đâu | Ghi chú |
-|---|---|---|
-| `DATABASE_URL` | Neon → Connection Details → Pooled connection | Dùng cho runtime |
-| `DIRECT_URL` | Neon → Connection Details → Direct connection | Chỉ dùng cho `prisma migrate dev` |
-| `AUTH_SECRET` | `openssl rand -base64 32` | Tạo 1 lần, giữ cố định |
-| `AUTH_URL` | `https://wyn-nine.vercel.app` | URL production của app |
-| `AUTH_GOOGLE_ID` | Google Cloud Console → OAuth 2.0 Clients | |
-| `AUTH_GOOGLE_SECRET` | Google Cloud Console → OAuth 2.0 Clients | |
-| `UNSPLASH_ACCESS_KEY` | Unsplash Developers → Your apps | |
-| `GROQ_API_KEY` | console.groq.com | Cho AI writing check |
-| `NEXT_PUBLIC_APP_URL` | `https://wyn-nine.vercel.app` | **Cập nhật khi đổi domain** |
-| `NEXT_PUBLIC_SENTRY_DSN` | Sentry → Settings → Projects → javascript-nextjs → Client Keys (DSN) | |
-| `SENTRY_ORG` | `wyn-1q` | Slug của Sentry org |
-| `SENTRY_PROJECT` | `javascript-nextjs` | Tên project trong Sentry |
-| `SENTRY_AUTH_TOKEN` | Sentry → User Settings → Auth Tokens → Create | Scope: `project:releases`, `org:read`, `project:read` |
+| Biến                     | Lấy ở đâu                                                            | Ghi chú                                               |
+| ------------------------ | -------------------------------------------------------------------- | ----------------------------------------------------- |
+| `DATABASE_URL`           | Neon → Connection Details → Pooled connection                        | Dùng cho runtime                                      |
+| `DIRECT_URL`             | Neon → Connection Details → Direct connection                        | Chỉ dùng cho `prisma migrate dev`                     |
+| `AUTH_SECRET`            | `openssl rand -base64 32`                                            | Tạo 1 lần, giữ cố định                                |
+| `AUTH_URL`               | `https://wynvocab.site`                                              | URL production của app                                |
+| `AUTH_GOOGLE_ID`         | Google Cloud Console → OAuth 2.0 Clients                             |                                                       |
+| `AUTH_GOOGLE_SECRET`     | Google Cloud Console → OAuth 2.0 Clients                             |                                                       |
+| `UNSPLASH_ACCESS_KEY`    | Unsplash Developers → Your apps                                      |                                                       |
+| `GROQ_API_KEY`           | console.groq.com                                                     | Cho AI writing check                                  |
+| `NEXT_PUBLIC_APP_URL`    | `https://wynvocab.site`                                              | **Cập nhật khi đổi domain**                           |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry → Settings → Projects → javascript-nextjs → Client Keys (DSN) |                                                       |
+| `SENTRY_ORG`             | `wyn-1q`                                                             | Slug của Sentry org                                   |
+| `SENTRY_PROJECT`         | `javascript-nextjs`                                                  | Tên project trong Sentry                              |
+| `SENTRY_AUTH_TOKEN`      | Sentry → User Settings → Auth Tokens → Create                        | Scope: `project:releases`, `org:read`, `project:read` |
 
 **Environment nên chọn:** Production + Preview + Development cho tất cả (trừ `DIRECT_URL` chỉ cần Development).
 
 ### Trên máy local (.env)
 
 Tương tự nhưng:
+
 - `AUTH_URL=http://localhost:3108`
 - `NEXT_PUBLIC_APP_URL=http://localhost:3108`
 - `DATABASE_URL` dùng pooler URL của Neon
@@ -120,6 +128,7 @@ Tương tự nhưng:
 ### Bug 1 — Vercel build fail: "Cannot find module" (Prisma)
 
 **Lỗi:**
+
 ```
 Error: Cannot find module '@/app/generated/prisma/client'
 ```
@@ -129,11 +138,13 @@ Prisma client được generate ra folder `app/generated/prisma/` và folder nà
 
 **Fix:**
 Thêm vào `package.json`:
+
 ```json
 "scripts": {
   "postinstall": "prisma generate"
 }
 ```
+
 `postinstall` chạy tự động sau `npm install` → Vercel sẽ generate Prisma client trước khi build.
 
 **Commit:** `237dead`
@@ -143,6 +154,7 @@ Thêm vào `package.json`:
 ### Bug 2 — SSL deprecation warning từ `pg`
 
 **Lỗi (xuất hiện mỗi khi cold start):**
+
 ```
 (node:4) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require',
 and 'verify-ca' are treated as aliases for 'verify-full' in pg >= 9
@@ -152,6 +164,7 @@ and 'verify-ca' are treated as aliases for 'verify-full' in pg >= 9
 URL kết nối Neon có tham số `?sslmode=require`. Trong `pg` phiên bản 9+, tham số này bị deprecated.
 
 **Fix:** Sửa `lib/db.ts` — xóa `sslmode` khỏi URL và truyền SSL option trực tiếp vào Pool:
+
 ```ts
 function buildConnectionString(url: string | undefined) {
   const u = new URL(url);
@@ -173,6 +186,7 @@ const pool = new Pool({
 Click "Continue with Google" → Google OAuth → thành công → nhưng bị đá ngược về `/sign-in` thay vì vào `/dashboard`.
 
 **Lỗi trong Vercel logs:**
+
 ```
 [auth][error] CallbackRouteError: response parameter "iss" (issuer) missing
 ```
@@ -181,6 +195,7 @@ Click "Continue with Google" → Google OAuth → thành công → nhưng bị �
 Auth.js v5 chạy sau reverse proxy của Vercel. Nó cần biết rằng các header `x-forwarded-host`, `x-forwarded-proto` từ Vercel là đáng tin cậy. Mặc định nó không tin và bỏ qua → không xác định được issuer đúng → lỗi.
 
 **Fix:** Thêm `trustHost: true` vào `lib/auth.ts`:
+
 ```ts
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -198,6 +213,7 @@ Ngoài ra cũng cần đảm bảo biến `AUTH_URL=https://wyn-nine.vercel.app`
 ### Bug 4 — Sau khi fix Bug 3, vẫn bị đá về /sign-in
 
 **Triệu chứng (từ Vercel logs):**
+
 ```
 GET /api/auth/callback/google  302  (OK — callback thành công)
 GET /dashboard                 307  (bị redirect!)
@@ -208,6 +224,7 @@ GET /sign-in                   200  (về trang login)
 Auth.js v5 đặt tên cookie session là `__Secure-authjs.session-token` trên HTTPS (production). Nhưng trong `proxy.ts`, hàm `getToken` từ `next-auth/jwt` không biết tên cookie này — nó mặc định tìm `authjs.session-token` (không có prefix `__Secure-`) → tìm không thấy → trả về `null` → middleware nghĩ user chưa đăng nhập → redirect về `/sign-in`.
 
 **Fix:** Thêm `secureCookie` vào `getToken` trong `proxy.ts`:
+
 ```ts
 const token = await getToken({
   req: request,
@@ -226,6 +243,7 @@ Khi HTTPS (Vercel): tìm `__Secure-authjs.session-token`
 ### Bug 5 — TypeScript error trong instrumentation.ts
 
 **Lỗi:**
+
 ```
 Argument of type '{ path: string; method: string; }' is not assignable
 to parameter of type 'RequestInfo'. Property 'headers' is missing.
@@ -235,6 +253,7 @@ to parameter of type 'RequestInfo'. Property 'headers' is missing.
 Dùng `captureRequestError` với sai kiểu tham số.
 
 **Fix:** Đơn giản hóa — chỉ dùng `captureException`:
+
 ```ts
 export const onRequestError = async (err: unknown) => {
   const Sentry = await import('@sentry/nextjs');
@@ -247,17 +266,19 @@ export const onRequestError = async (err: unknown) => {
 ### Bug 6 — Sentry build warnings (deprecated options)
 
 **Warning:**
+
 ```
 Option "disableLogger" is deprecated
 Option "automaticVercelMonitors" is deprecated at top level
 ```
 
 **Fix:** Chuyển sang cấu trúc mới trong `next.config.ts`:
+
 ```ts
 withSentryConfig(nextConfig, {
   webpack: {
     treeshake: { removeDebugLogging: true }, // thay disableLogger
-    automaticVercelMonitors: true,           // đưa vào trong webpack.{}
+    automaticVercelMonitors: true, // đưa vào trong webpack.{}
   },
 });
 ```
@@ -271,13 +292,17 @@ withSentryConfig(nextConfig, {
 Hai mục cần cập nhật mỗi khi domain thay đổi:
 
 **Authorized JavaScript origins:**
+
 ```
 https://wyn-nine.vercel.app
+https://wynvocab.site
 ```
 
 **Authorized redirect URIs:**
+
 ```
 https://wyn-nine.vercel.app/api/auth/callback/google
+https://wynvocab.site/api/auth/callback/google
 ```
 
 Nếu thêm domain mới → thêm 2 dòng mới, không xóa dòng cũ (để cả Vercel URL và custom domain đều hoạt động).
@@ -300,6 +325,7 @@ Khi mua domain mới và gắn vào Vercel, cần làm đủ 4 bước này:
 Next.js 16 dùng file `proxy.ts` (thay cho `middleware.ts`) với named export `proxy`.
 
 File `proxy.ts` chạy trước mọi request, làm nhiệm vụ:
+
 1. Đọc JWT token từ cookie (`getToken`)
 2. Nếu truy cập route cần đăng nhập mà chưa login → redirect về `/sign-in`
 3. Nếu đã login mà vào `/sign-in` → redirect về `/dashboard`
@@ -311,9 +337,11 @@ Route cần đăng nhập: `/dashboard`, `/words`, `/categories`, `/review`, `/s
 ## Sentry — Cách verify hoạt động
 
 Sau khi deploy, vào app trên production, mở DevTools (F12) → tab Console → chạy:
+
 ```js
-throw new Error("sentry test wyn")
+throw new Error('sentry test wyn');
 ```
+
 Sau ~30 giây vào `https://wyn-1q.sentry.io/issues/` → nếu thấy error xuất hiện = Sentry đang hoạt động.
 
 ---
@@ -330,4 +358,127 @@ Nếu build fail → xem logs tại: Vercel → Deployments → click vào deplo
 
 ---
 
-*Cập nhật lần cuối: 30/04/2026*
+---
+
+## Custom Domain Setup (30/04/2026)
+
+Domain `wynvocab.site` mua tại Namecheap và cấu hình xong trong cùng ngày.
+
+---
+
+### Bước 1 — Mua domain tại Namecheap
+
+**Chi phí:** $1.18/năm = $0.98 (domain) + $0.20 (ICANN fee)
+
+**Cấu hình khi checkout — giữ nguyên defaults:**
+
+| Item                                | Trạng thái             | Ghi chú                        |
+| ----------------------------------- | ---------------------- | ------------------------------ |
+| Domain Registration `wynvocab.site` | Mua 1 năm              | Domain chính                   |
+| Domain Privacy                      | **Bật** (FREE FOREVER) | Ẩn thông tin cá nhân, nên giữ  |
+| PremiumDNS                          | **Tắt**                | Không cần — Vercel quản lý DNS |
+| Stellar Web Hosting                 | **Tắt**                | Không cần — hosting là Vercel  |
+
+**Renewal settings (mặc định Namecheap):**
+
+| Item                | Auto-renew | Lý do                             |
+| ------------------- | ---------- | --------------------------------- |
+| Domain Registration | **Bật**    | Tránh mất domain nếu quên gia hạn |
+| PremiumDNS          | Tắt        | Không dùng                        |
+| Free Domain Privacy | **Bật**    | Free, không mất gì                |
+
+**Lưu ý — Contact verification:**
+Sau khi mua, Namecheap gửi email "verify contact info". Nếu click link bị báo `verification link is no longer valid` → đọc kỹ message: nếu có dòng _"has already been verified"_ thì domain đã ok, không cần làm gì thêm.
+
+---
+
+### Bước 2 — Thêm domain vào Vercel
+
+**Đường đi:** Vercel → project `wyn` → **Domains** (sidebar) → **Add Existing**
+
+Trong dialog **Add Domain**:
+
+| Setting                                                | Giá trị         | Lý do                                                                                      |
+| ------------------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------ |
+| Input                                                  | `wynvocab.site` | Domain chính, không có `www.`                                                              |
+| Checkbox "Redirect wynvocab.site to www.wynvocab.site" | **BỎ TICK**     | Giữ `wynvocab.site` làm canonical URL, tránh phải config thêm env vars và OAuth cho `www.` |
+| Connect to an environment                              | **Production**  | Deploy production                                                                          |
+
+Sau khi Save, Vercel hiển thị **"Invalid Configuration"** — đây là **bình thường**, có nghĩa là DNS chưa được trỏ về Vercel. Vercel yêu cầu thêm record sau:
+
+| Type | Name | Value          |
+| ---- | ---- | -------------- |
+| A    | `@`  | `216.198.79.1` |
+
+> **Ghi chú:** IP `216.198.79.1` là IP mới của Vercel (IP range expansion). IP cũ `76.76.21.21` vẫn còn hoạt động nhưng Vercel khuyên dùng IP mới.
+
+---
+
+### Bước 3 — Cấu hình DNS tại Namecheap
+
+**Đường đi:** Namecheap → Domain List → `wynvocab.site` → Manage → tab **Advanced DNS**
+
+**Trạng thái DNS mặc định khi mới mua (cần xóa):**
+
+| Type                | Host  | Value                        | Hành động                                        |
+| ------------------- | ----- | ---------------------------- | ------------------------------------------------ |
+| CNAME Record        | `www` | `parkingpage.namecheap.com.` | **XÓA** — parking page mặc định                  |
+| URL Redirect Record | `@`   | `http://www.wynvocab.site/`  | **XÓA** — redirect sang www, xung đột với Vercel |
+
+**Trạng thái DNS sau khi cấu hình (giữ nguyên):**
+
+| Type       | Host | Value                                                | TTL       | Hành động                                                                 |
+| ---------- | ---- | ---------------------------------------------------- | --------- | ------------------------------------------------------------------------- |
+| A Record   | `@`  | `216.198.79.1`                                       | Automatic | **THÊM MỚI** — trỏ root domain về Vercel                                  |
+| TXT Record | `@`  | `v=spf1 include:spf.efwd.registrar-servers.com ~all` | Automatic | **GIỮ NGUYÊN** — record email của Namecheap, có icon khóa, không sửa được |
+
+Sau khi save A Record mới, quay lại Vercel → Domains → click **Refresh**. DNS propagate thường mất 5–30 phút. Khi thấy **"Valid Configuration"** với dấu tick xanh là xong.
+
+---
+
+### Bước 4 — Cập nhật Environment Variables trên Vercel
+
+**Đường đi:** Vercel → project `wyn` → **Environment Variables**
+
+Sửa 2 biến (từ `wyn-nine.vercel.app` thành `wynvocab.site`):
+
+| Biến                  | Giá trị mới             |
+| --------------------- | ----------------------- |
+| `AUTH_URL`            | `https://wynvocab.site` |
+| `NEXT_PUBLIC_APP_URL` | `https://wynvocab.site` |
+
+---
+
+### Bước 5 — Cập nhật Google OAuth
+
+**Đường đi:** console.cloud.google.com → APIs & Services → Credentials → OAuth 2.0 Client IDs → chọn client của Wyn
+
+**Thêm** vào 2 mục (không xóa dòng cũ của `wyn-nine.vercel.app`):
+
+**Authorized JavaScript origins:**
+
+```
+https://wyn-nine.vercel.app
+https://wynvocab.site
+```
+
+**Authorized redirect URIs:**
+
+```
+https://wyn-nine.vercel.app/api/auth/callback/google
+https://wynvocab.site/api/auth/callback/google
+```
+
+Giữ cả 2 domain để cả `wynvocab.site` và `wyn-nine.vercel.app` đều hoạt động song song.
+
+---
+
+### Bước 6 — Redeploy
+
+Vercel tự redeploy khi env vars thay đổi. Nếu không tự động: Vercel → Deployments → deployment mới nhất → **Redeploy**.
+
+**Kết quả cuối:** `https://wynvocab.site` live, Google OAuth hoạt động, data giữ nguyên.
+
+---
+
+_Cập nhật lần cuối: 30/04/2026_

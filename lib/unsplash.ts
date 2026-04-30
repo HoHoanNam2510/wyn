@@ -3,6 +3,7 @@ export type UnsplashPhoto = {
   urls: { small: string; regular: string };
   alt_description: string | null;
   user: { name: string; links: { html: string } };
+  links: { download_location: string };
 };
 
 export async function searchUnsplash(query: string): Promise<UnsplashPhoto[]> {

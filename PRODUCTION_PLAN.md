@@ -51,12 +51,13 @@ Plan được sắp xếp theo **mức độ ưu tiên triển khai**, không th
 | **A4** Privacy + Terms                    | ✅ Done    | 2026-04-29      | `/privacy`, `/terms` với public layout; sidebar footer links                                      |
 | **A5** Account deletion + export          | ✅ Done    | 2026-04-29      | `/settings` page, deleteAccount(), exportData(), Settings link trong sidebar + topbar             |
 | **A6** `.env.example`                     | ✅ Done    | 2026-04-29      | Tất cả env vars với placeholder và comment                                                        |
-| **B1** Observability (Sentry + Analytics) | ⏳ Pending | —               | Tuần 3                                                                                            |
-| **B2** Onboarding newbie                  | ⏳ Pending | —               | Tuần 4                                                                                            |
-| **B3** Profile & Settings mở rộng         | ⏳ Pending | —               | Đã có settings cơ bản (A5), B3 = theme picker + edit profile                                      |
-| **B4** SEO (sitemap + robots)             | ⏳ Pending | —               | Tuần 4                                                                                            |
-| **B5** CI/CD pipeline                     | ⏳ Pending | —               | Tuần 3                                                                                            |
+| **B1** Observability (Sentry + Analytics) | ✅ Done    | 2026-04-30      | Sentry + Vercel Analytics + Speed Insights                                                        |
+| **B2** Onboarding newbie                  | ✅ Done    | 2026-04-30      | Empty state 3-step checklist khi wordCount === 0                                                  |
+| **B3** Profile & Settings mở rộng         | ✅ Done    | 2026-04-30      | Inline name edit + theme picker (light/dark/system)                                               |
+| **B4** SEO (sitemap + robots)             | ✅ Done    | 2026-04-30      | app/sitemap.ts + app/robots.ts                                                                    |
+| **B5** CI/CD pipeline                     | ✅ Done    | 2026-04-30      | .github/workflows/ci.yml — lint + tsc + prisma validate + format check                            |
 | **B6** Unit tests                         | ⏳ Pending | —               | Post-launch                                                                                       |
+| **Custom Domain**                         | ✅ Done    | 2026-04-30      | wynvocab.site mua tại Namecheap, DNS Namecheap → Vercel, Google OAuth updated                     |
 | **C1** PWA                                | ⏳ Pending | —               | Post-launch                                                                                       |
 | **C2** i18n                               | ⏳ Pending | —               | Post-launch                                                                                       |
 | **C3** Caching / bundle optimization      | ⏳ Pending | —               | Post-launch                                                                                       |
@@ -349,8 +350,8 @@ vitest.config.ts + lib/__tests__/*          ← MỚI (Phase B6)
 | ------------------- | ------------------------------------------------------ | ----------------------------------------- | -------------------- |
 | Tuần 1 (đầu 5/2026) | Phase A1 + A2 (security + indexes)                     | Migration + security fixes                | ✅ Done (2026-04-29) |
 | Tuần 2              | Phase A3 + A4 + A5 + A6 (UX + legal)                   | Privacy/terms công bố, settings page live | ✅ Done (2026-04-29) |
-| Tuần 3              | Phase B1 + B5 (Sentry + CI) + Unsplash production tier | Sentry receiving events, CI green         | ⏳ Upcoming          |
-| Tuần 4              | Phase B2 + B3 + B4 (onboarding + SEO) + smoke test     | Soft launch nội bộ với 5 friend test      | ⏳ Upcoming          |
+| Tuần 3              | Phase B1 + B5 (Sentry + CI) + Unsplash production tier | Sentry receiving events, CI green         | ✅ Done (2026-04-30) |
+| Tuần 4              | Phase B2 + B3 + B4 (onboarding + SEO) + custom domain  | wynvocab.site live, smoke test done       | ✅ Done (2026-04-30) |
 | 1/6/2026            | **Public launch**                                      | Verify uptime 7 ngày                      | ⏳ Target            |
 
 Phase B6 (tests) + Phase C có thể làm sau launch khi đã thấy pattern lỗi thực tế.

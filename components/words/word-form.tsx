@@ -149,9 +149,14 @@ export function WordForm({ categories, defaultValues, wordId }: Props) {
     }
   }
 
-  function pickImage(url: string) {
-    form.setValue('imageUrl', url);
+  function pickImage(photo: UnsplashPhoto) {
+    form.setValue('imageUrl', photo.urls.regular);
     setShowUnsplash(false);
+    fetch('/api/unsplash/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ downloadLocation: photo.links.download_location }),
+    }).catch(() => {});
   }
 
   function toggleCategory(id: string) {
@@ -351,7 +356,7 @@ export function WordForm({ categories, defaultValues, wordId }: Props) {
                   <button
                     key={photo.id}
                     type="button"
-                    onClick={() => pickImage(photo.urls.regular)}
+                    onClick={() => pickImage(photo)}
                     className="relative aspect-video rounded-md overflow-hidden border-2 border-transparent hover:border-primary transition-colors"
                   >
                     <Image
@@ -361,6 +366,29 @@ export function WordForm({ categories, defaultValues, wordId }: Props) {
                       sizes="168px"
                       className="object-cover"
                     />
+                    <div className="absolute bottom-0 inset-x-0 bg-black/60 px-1.5 py-0.5">
+                      <p className="text-white text-[10px] truncate">
+                        <a
+                          href={`${photo.user.links.html}?utm_source=wyn&utm_medium=referral`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="underline"
+                        >
+                          {photo.user.name}
+                        </a>
+                        {' · '}
+                        <a
+                          href="https://unsplash.com/?utm_source=wyn&utm_medium=referral"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="underline"
+                        >
+                          Unsplash
+                        </a>
+                      </p>
+                    </div>
                   </button>
                 ))}
               </div>
