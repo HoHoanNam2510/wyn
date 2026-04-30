@@ -54,7 +54,9 @@ export async function TopBar() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <SignOutButton />
+                <div className="px-3">
+                  <SignOutButton />
+                </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
