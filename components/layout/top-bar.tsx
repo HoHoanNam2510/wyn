@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { auth, signOut } from '@/lib/auth';
+import { auth } from '@/lib/auth';
+import { SignOutButton } from './sign-out-button';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -53,19 +54,7 @@ export async function TopBar() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <form
-                  action={async () => {
-                    'use server';
-                    await signOut({ redirectTo: '/sign-in' });
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className="w-full text-left text-sm cursor-pointer"
-                  >
-                    Sign out
-                  </button>
-                </form>
+                <SignOutButton />
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

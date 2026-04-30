@@ -11,6 +11,10 @@ async function requireUser() {
   return session.user.id;
 }
 
+export async function signOutUser() {
+  await signOut({ redirectTo: '/sign-in' });
+}
+
 export async function deleteAccount() {
   const userId = await requireUser();
   await db.user.delete({ where: { id: userId } });

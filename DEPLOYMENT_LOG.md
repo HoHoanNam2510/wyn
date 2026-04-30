@@ -313,10 +313,10 @@ Nếu thêm domain mới → thêm 2 dòng mới, không xóa dòng cũ (để c
 
 Khi mua domain mới và gắn vào Vercel, cần làm đủ 4 bước này:
 
-- [ ] **Vercel** → Settings → Domains → thêm domain → cấu hình DNS theo hướng dẫn của Vercel
-- [ ] **Vercel env vars** → cập nhật `NEXT_PUBLIC_APP_URL` và `AUTH_URL` thành domain mới
-- [ ] **Google Cloud Console** → thêm domain mới vào Authorized origins + Authorized redirect URIs
-- [ ] **Redeploy** Vercel sau khi đổi env vars
+- [x] **Vercel** → Settings → Domains → thêm domain → cấu hình DNS theo hướng dẫn của Vercel
+- [x] **Vercel env vars** → cập nhật `NEXT_PUBLIC_APP_URL` và `AUTH_URL` thành domain mới
+- [x] **Google Cloud Console** → thêm domain mới vào Authorized origins + Authorized redirect URIs
+- [x] **Redeploy** Vercel sau khi đổi env vars
 
 ---
 

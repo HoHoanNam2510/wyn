@@ -67,6 +67,8 @@ Plan được sắp xếp theo **mức độ ưu tiên triển khai**, không th
 
 - `proxy.ts`: bổ sung `/grammar`, `/idioms`, `/text-scanner` vào `PROTECTED_PATHS` (các route này cần auth nhưng bị thiếu)
 - `app/(public)/layout.tsx`: nút **← Back to app** trên header của privacy/terms pages
+- **Unsplash API compliance** (30/04/2026): thêm attribution overlay "Photographer · Unsplash" trên image picker + trigger download endpoint khi user chọn ảnh → required để được approve production tier
+- **Sign out bug fix** (30/04/2026): Radix `DropdownMenuItem asChild` + `form` child intercept click trước khi form submit → tách thành `SignOutButton` client component dùng `useTransition` + server action
 
 ---
 
