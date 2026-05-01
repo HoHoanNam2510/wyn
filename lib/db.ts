@@ -23,9 +23,15 @@ function createPrismaClient() {
     connectionString: buildConnectionString(process.env.DATABASE_URL),
     ssl: { rejectUnauthorized: true },
     max: 3,
-    connectionTimeoutMillis: 30_000,
-    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 60_000, // 60s — enough for Neon cold start
+    idleTimeoutMillis: 10_000, // 10s — evict before Neon's proxy kills them
   });
+
+  // When Neon terminates an idle connection, pg-pool emits 'error'.
+  // Without this handler Node.js throws an unhandled error and crashes the request.
+  // pg-pool automatically removes the dead client from the pool after this fires.
+  pool.on('error', () => {});
+
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }

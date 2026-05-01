@@ -12,6 +12,7 @@ const PROTECTED_PATHS = [
   '/grammar',
   '/idioms',
   '/text-scanner',
+  '/feedback',
 ];
 
 export async function proxy(request: NextRequest) {
@@ -29,6 +30,14 @@ export async function proxy(request: NextRequest) {
 
   if (isProtected && !isLoggedIn) {
     return NextResponse.redirect(new URL('/sign-in', request.url));
+  }
+
+  const isAdminPath = pathname === '/admin' || pathname.startsWith('/admin/');
+  if (isAdminPath) {
+    if (!isLoggedIn)
+      return NextResponse.redirect(new URL('/sign-in', request.url));
+    if (!token?.isAdmin)
+      return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   if (isLoggedIn && pathname === '/sign-in') {

@@ -14,6 +14,7 @@ import {
   ScanText,
   Lightbulb,
   BrainCircuit,
+  MessageSquare,
   Settings,
   X,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/review', label: 'Review', icon: RotateCcw },
   { href: '/review/srs', label: 'SRS Review', icon: BrainCircuit },
   { href: '/stats', label: 'Stats', icon: BarChart3 },
+  { href: '/feedback', label: 'Feedback', icon: MessageSquare },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 

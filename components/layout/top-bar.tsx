@@ -47,16 +47,27 @@ export async function TopBar() {
                 </p>
               </div>
               <DropdownMenuSeparator />
+              {user.isAdmin && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/admin"
+                      className="cursor-pointer text-sm font-semibold text-primary"
+                    >
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="cursor-pointer text-sm">
                   Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <div className="px-3">
-                  <SignOutButton />
-                </div>
+              <DropdownMenuItem>
+                <SignOutButton />
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

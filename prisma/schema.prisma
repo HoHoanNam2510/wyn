@@ -28,6 +28,18 @@ enum ReviewMode {
   srs
 }
 
+enum FeedbackType {
+  GENERAL
+  BUG
+  FEATURE_REQUEST
+}
+
+enum FeedbackStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
 model User {
   id              String               @id @default(cuid())
   email           String               @unique
@@ -44,6 +56,7 @@ model User {
   grammarReviews  GrammarReviewEvent[]
   idiomExamples   IdiomExample[]
   idiomReviews    IdiomReviewEvent[]
+  feedbacks       Feedback[]
 }
 
 model Account {
@@ -231,4 +244,39 @@ model IdiomReviewEvent {
   idiom      Idiom    @relation(fields: [idiomId], references: [id], onDelete: Cascade)
 
   @@index([userId, reviewedAt])
+}
+
+model Feedback {
+  id        String         @id @default(cuid())
+  userId    String?
+  type      FeedbackType
+  content   String
+  status    FeedbackStatus @default(OPEN)
+  createdAt DateTime       @default(now())
+  user      User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  content   String
+  isActive  Boolean   @default(true)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([isActive, expiresAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  adminEmail  String
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([adminEmail, createdAt])
 }
