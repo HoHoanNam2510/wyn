@@ -1,15 +1,61 @@
-import Link from 'next/link';
-import { fetchAuditLogs } from '@/lib/admin/queries';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { fetchAuditLogs, type AdminAuditLog } from '@/lib/admin/queries';
+import { DataTable, type Column } from '@/components/admin/data-table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
+const columns: Column<AdminAuditLog>[] = [
+  {
+    key: 'admin',
+    header: 'Admin Email',
+    cell: (log) => <span className="text-sm">{log.adminEmail}</span>,
+  },
+  {
+    key: 'action',
+    header: 'Action',
+    cell: (log) => (
+      <Badge variant="outline" className="font-mono text-xs">
+        {log.action}
+      </Badge>
+    ),
+  },
+  {
+    key: 'entityType',
+    header: 'Entity Type',
+    cell: (log) => <span className="text-sm">{log.entityType}</span>,
+  },
+  {
+    key: 'entityId',
+    header: 'Entity ID',
+    cell: (log) => (
+      <span className="font-mono text-sm text-muted-foreground">
+        {log.entityId ? log.entityId.slice(0, 8) : '—'}
+      </span>
+    ),
+  },
+  {
+    key: 'metadata',
+    header: 'Metadata',
+    className: 'max-w-xs truncate',
+    cell: (log) => {
+      const metaStr = log.metadata ? JSON.stringify(log.metadata) : '';
+      const truncated =
+        metaStr.length > 60 ? `${metaStr.slice(0, 60)}…` : metaStr;
+      return (
+        <span className="font-mono text-xs text-muted-foreground">
+          {truncated || '—'}
+        </span>
+      );
+    },
+  },
+  {
+    key: 'time',
+    header: 'Time',
+    cell: (log) => (
+      <span className="whitespace-nowrap text-sm text-muted-foreground">
+        {new Date(log.createdAt).toLocaleString()}
+      </span>
+    ),
+  },
+];
 
 export default async function AdminAuditPage({
   searchParams,
@@ -24,98 +70,17 @@ export default async function AdminAuditPage({
     logs: [],
     total: 0,
   }));
-  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Audit Log</h1>
-
-      <div className="overflow-hidden rounded-xl border border-foreground/20 [&_thead_tr]:bg-primary/10 [&_thead_tr]:border-foreground/20 [&_tbody_tr]:border-foreground/8">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Admin Email</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>Entity Type</TableHead>
-              <TableHead>Entity ID</TableHead>
-              <TableHead>Metadata</TableHead>
-              <TableHead>Time</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {logs.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center text-muted-foreground py-8"
-                >
-                  No audit logs yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              logs.map((log) => {
-                const metaStr = log.metadata
-                  ? JSON.stringify(log.metadata)
-                  : '';
-                const truncatedMeta =
-                  metaStr.length > 60 ? `${metaStr.slice(0, 60)}…` : metaStr;
-                return (
-                  <TableRow key={log.id}>
-                    <TableCell className="text-sm">{log.adminEmail}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs font-mono">
-                        {log.action}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">{log.entityType}</TableCell>
-                    <TableCell className="text-sm font-mono text-muted-foreground">
-                      {log.entityId ? log.entityId.slice(0, 8) : '—'}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground font-mono max-w-xs truncate">
-                      {truncatedMeta || '—'}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            {page > 1 ? (
-              <Link href={`?page=${page - 1}`}>
-                <Button variant="outline" size="sm">
-                  Previous
-                </Button>
-              </Link>
-            ) : (
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-            )}
-            {page < totalPages ? (
-              <Link href={`?page=${page + 1}`}>
-                <Button variant="outline" size="sm">
-                  Next
-                </Button>
-              </Link>
-            ) : (
-              <Button variant="outline" size="sm" disabled>
-                Next
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        rows={logs}
+        rowKey={(log) => log.id}
+        empty="No audit logs yet."
+        pagination={{ page, pageSize, total }}
+      />
     </div>
   );
 }

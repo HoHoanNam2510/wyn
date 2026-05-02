@@ -2,20 +2,11 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { toast } from 'sonner';
 import { type AdminFeedback } from '@/lib/admin/queries';
 import { updateFeedbackStatus } from '@/app/actions/admin';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataTable, type Column } from '@/components/admin/data-table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -56,7 +47,7 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
-function FeedbackRow({ feedback }: { feedback: AdminFeedback }) {
+function StatusSelect({ feedback }: { feedback: AdminFeedback }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -75,43 +66,21 @@ function FeedbackRow({ feedback }: { feedback: AdminFeedback }) {
     });
   }
 
-  const content =
-    feedback.content.length > 80
-      ? `${feedback.content.slice(0, 80)}…`
-      : feedback.content;
-
   return (
-    <TableRow>
-      <TableCell>
-        <TypeBadge type={feedback.type} />
-      </TableCell>
-      <TableCell className="text-sm max-w-xs">{content}</TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {feedback.user?.email ?? 'Anonymous'}
-      </TableCell>
-      <TableCell>
-        <StatusBadge status={feedback.status} />
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {new Date(feedback.createdAt).toLocaleDateString()}
-      </TableCell>
-      <TableCell>
-        <Select
-          defaultValue={feedback.status}
-          onValueChange={handleStatusChange}
-          disabled={isPending}
-        >
-          <SelectTrigger className="h-8 w-32 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="OPEN">Open</SelectItem>
-            <SelectItem value="RESOLVED">Resolved</SelectItem>
-            <SelectItem value="DISMISSED">Dismissed</SelectItem>
-          </SelectContent>
-        </Select>
-      </TableCell>
-    </TableRow>
+    <Select
+      defaultValue={feedback.status}
+      onValueChange={handleStatusChange}
+      disabled={isPending}
+    >
+      <SelectTrigger className="h-8 w-32 text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="OPEN">Open</SelectItem>
+        <SelectItem value="RESOLVED">Resolved</SelectItem>
+        <SelectItem value="DISMISSED">Dismissed</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -122,79 +91,59 @@ export function FeedbackClient({
   pageSize,
   status,
 }: Props) {
-  const totalPages = Math.ceil(total / pageSize);
-
-  function buildHref(p: number) {
-    const params = new URLSearchParams();
-    params.set('page', String(p));
-    params.set('status', status);
-    return `?${params.toString()}`;
-  }
+  const columns: Column<AdminFeedback>[] = [
+    {
+      key: 'type',
+      header: 'Type',
+      cell: (f) => <TypeBadge type={f.type} />,
+    },
+    {
+      key: 'content',
+      header: 'Content',
+      className: 'max-w-xs',
+      cell: (f) => {
+        const content =
+          f.content.length > 80 ? `${f.content.slice(0, 80)}…` : f.content;
+        return <span className="text-sm">{content}</span>;
+      },
+    },
+    {
+      key: 'user',
+      header: 'User',
+      cell: (f) => (
+        <span className="text-sm text-muted-foreground">
+          {f.user?.email ?? 'Anonymous'}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      cell: (f) => <StatusBadge status={f.status} />,
+    },
+    {
+      key: 'created',
+      header: 'Created',
+      cell: (f) => (
+        <span className="text-sm text-muted-foreground">
+          {new Date(f.createdAt).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: 'changeStatus',
+      header: 'Change Status',
+      cell: (f) => <StatusSelect feedback={f} />,
+    },
+  ];
 
   return (
-    <>
-      <div className="overflow-hidden rounded-xl border border-foreground/20 [&_thead_tr]:bg-primary/10 [&_thead_tr]:border-foreground/20 [&_tbody_tr]:border-foreground/8">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Type</TableHead>
-              <TableHead>Content</TableHead>
-              <TableHead>User</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Change Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {feedbacks.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center text-muted-foreground py-8"
-                >
-                  No feedback found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              feedbacks.map((feedback) => (
-                <FeedbackRow key={feedback.id} feedback={feedback} />
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            {page > 1 ? (
-              <Link href={buildHref(page - 1)}>
-                <Button variant="outline" size="sm">
-                  Previous
-                </Button>
-              </Link>
-            ) : (
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-            )}
-            {page < totalPages ? (
-              <Link href={buildHref(page + 1)}>
-                <Button variant="outline" size="sm">
-                  Next
-                </Button>
-              </Link>
-            ) : (
-              <Button variant="outline" size="sm" disabled>
-                Next
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-    </>
+    <DataTable
+      columns={columns}
+      rows={feedbacks}
+      rowKey={(f) => f.id}
+      empty="No feedback found."
+      pagination={{ page, pageSize, total, searchParams: { status } }}
+    />
   );
 }

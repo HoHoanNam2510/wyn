@@ -15,15 +15,8 @@ import {
   announcementSchema,
   type AnnouncementValues,
 } from '@/lib/schemas/admin';
+import { DataTable, type Column } from '@/components/admin/data-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Form,
   FormControl,
@@ -133,7 +126,7 @@ function CreateForm() {
   );
 }
 
-function AnnouncementRow({ announcement }: { announcement: Announcement }) {
+function AnnouncementActions({ announcement }: { announcement: Announcement }) {
   const router = useRouter();
   const [isTogglePending, startToggle] = useTransition();
   const [isDeletePending, startDelete] = useTransition();
@@ -163,50 +156,67 @@ function AnnouncementRow({ announcement }: { announcement: Announcement }) {
   }
 
   return (
-    <TableRow>
-      <TableCell className="text-sm font-medium">
-        {announcement.title}
-      </TableCell>
-      <TableCell>
-        <Badge
-          variant={announcement.isActive ? 'default' : 'secondary'}
-          className="text-xs"
-        >
-          {announcement.isActive ? 'Active' : 'Inactive'}
-        </Badge>
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {announcement.expiresAt
-          ? new Date(announcement.expiresAt).toLocaleString()
-          : '—'}
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {new Date(announcement.createdAt).toLocaleDateString()}
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggle}
-            disabled={isTogglePending || isDeletePending}
-          >
-            {announcement.isActive ? 'Deactivate' : 'Activate'}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-            onClick={handleDelete}
-            disabled={isTogglePending || isDeletePending}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
+    <div className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleToggle}
+        disabled={isTogglePending || isDeletePending}
+      >
+        {announcement.isActive ? 'Deactivate' : 'Activate'}
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+        onClick={handleDelete}
+        disabled={isTogglePending || isDeletePending}
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
   );
 }
+
+const columns: Column<Announcement>[] = [
+  {
+    key: 'title',
+    header: 'Title',
+    cell: (a) => <span className="text-sm font-medium">{a.title}</span>,
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    cell: (a) => (
+      <Badge variant={a.isActive ? 'default' : 'secondary'} className="text-xs">
+        {a.isActive ? 'Active' : 'Inactive'}
+      </Badge>
+    ),
+  },
+  {
+    key: 'expires',
+    header: 'Expires',
+    cell: (a) => (
+      <span className="text-sm text-muted-foreground">
+        {a.expiresAt ? new Date(a.expiresAt).toLocaleString() : '—'}
+      </span>
+    ),
+  },
+  {
+    key: 'created',
+    header: 'Created',
+    cell: (a) => (
+      <span className="text-sm text-muted-foreground">
+        {new Date(a.createdAt).toLocaleDateString()}
+      </span>
+    ),
+  },
+  {
+    key: 'actions',
+    header: 'Actions',
+    cell: (a) => <AnnouncementActions announcement={a} />,
+  },
+];
 
 export function AnnouncementsClient({ announcements }: Props) {
   return (
@@ -215,35 +225,12 @@ export function AnnouncementsClient({ announcements }: Props) {
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">All Announcements</h2>
-        <div className="overflow-hidden rounded-xl border border-foreground/20 [&_thead_tr]:bg-primary/10 [&_thead_tr]:border-foreground/20 [&_tbody_tr]:border-foreground/8">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Expires</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {announcements.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center text-muted-foreground py-8"
-                  >
-                    No announcements yet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                announcements.map((a) => (
-                  <AnnouncementRow key={a.id} announcement={a} />
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          columns={columns}
+          rows={announcements}
+          rowKey={(a) => a.id}
+          empty="No announcements yet."
+        />
       </div>
     </div>
   );

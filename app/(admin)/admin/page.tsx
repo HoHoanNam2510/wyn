@@ -5,21 +5,17 @@ import {
   MessageSquare,
   Activity,
 } from 'lucide-react';
-import { fetchAdminDashboardStats } from '@/lib/admin/queries';
+import {
+  fetchAdminDashboardStats,
+  type AdminAuditLog,
+} from '@/lib/admin/queries';
 import { HeroCard } from '@/components/shared/hero-card';
 import {
   UserGrowthChart,
   WordGrowthChart,
   ReviewGrowthChart,
 } from '@/components/admin/overview-charts';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataTable, type Column } from '@/components/admin/data-table';
 
 function ChartCard({
   title,
@@ -35,6 +31,42 @@ function ChartCard({
     </div>
   );
 }
+
+const recentActionsColumns: Column<AdminAuditLog>[] = [
+  {
+    key: 'admin',
+    header: 'Admin',
+    cell: (log) => <span className="text-sm">{log.adminEmail}</span>,
+  },
+  {
+    key: 'action',
+    header: 'Action',
+    cell: (log) => <span className="text-sm font-mono">{log.action}</span>,
+  },
+  {
+    key: 'entity',
+    header: 'Entity',
+    cell: (log) => <span className="text-sm">{log.entityType}</span>,
+  },
+  {
+    key: 'entityId',
+    header: 'Entity ID',
+    cell: (log) => (
+      <span className="text-sm font-mono text-muted-foreground">
+        {log.entityId ? log.entityId.slice(0, 8) : '—'}
+      </span>
+    ),
+  },
+  {
+    key: 'time',
+    header: 'Time',
+    cell: (log) => (
+      <span className="whitespace-nowrap text-sm text-muted-foreground">
+        {new Date(log.createdAt).toLocaleString()}
+      </span>
+    ),
+  },
+];
 
 export default async function AdminOverviewPage() {
   const stats = await fetchAdminDashboardStats().catch(() => ({
@@ -103,47 +135,12 @@ export default async function AdminOverviewPage() {
       {/* Recent audit log */}
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Recent Actions</h2>
-        <div className="overflow-hidden rounded-xl border border-foreground/20 [&_thead_tr]:bg-primary/10 [&_thead_tr]:border-foreground/20 [&_tbody_tr]:border-foreground/8">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Admin</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Entity</TableHead>
-                <TableHead>Entity ID</TableHead>
-                <TableHead>Time</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stats.recentAuditLogs.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center text-muted-foreground py-8"
-                  >
-                    No actions yet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                stats.recentAuditLogs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="text-sm">{log.adminEmail}</TableCell>
-                    <TableCell className="text-sm font-mono">
-                      {log.action}
-                    </TableCell>
-                    <TableCell className="text-sm">{log.entityType}</TableCell>
-                    <TableCell className="text-sm font-mono text-muted-foreground">
-                      {log.entityId ? log.entityId.slice(0, 8) : '—'}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          columns={recentActionsColumns}
+          rows={stats.recentAuditLogs}
+          rowKey={(log) => log.id}
+          empty="No actions yet."
+        />
       </div>
     </div>
   );

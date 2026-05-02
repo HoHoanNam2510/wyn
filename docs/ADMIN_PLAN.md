@@ -37,6 +37,11 @@ Plan này KHÔNG đề cập Phase C của PRODUCTION_PLAN (PWA, i18n, caching, 
 | **Verify & deploy**             | ✅ Done    | 2026-05-01      | Test 9 scenarios + `npm run build`                                                            |
 | **10** UI Polish & Bug Fixes    | ✅ Done    | 2026-05-01      | 5 fix: timeout, banner, table style, words cols, overview charts                              |
 | **11** UX & Code Quality Fixes  | ✅ Done    | 2026-05-01      | Admin settings page, table header bg, sidebar refactor, React Compiler warnings, CSS lint fix |
+| **12** Shared DataTable         | ✅ Done    | 2026-05-02      | `DataTable<T>` + migrate 6 tables (users/words/feedback/announcements/audit/overview)         |
+| **13** ApiUsage Tracking        | ⏳ Planned | —               | Foundation: `ApiUsageDaily` model + helper wrap 3 lib calls                                   |
+| **14** API Usage Page           | ⏳ Planned | —               | `/admin/api-usage` + critical banner trên Overview                                            |
+| **15** Reviews Mgmt Page        | ⏳ Planned | —               | `/admin/reviews` overview + per-user drill-down (vocab + grammar + idiom)                     |
+| **16** Polish                   | ⏳ Planned | —               | `updateAnnouncement` + 2 category stat cards trên Overview                                    |
 
 Update với `[x]` hoặc ✅ khi hoàn thành.
 
@@ -504,3 +509,337 @@ GROUP BY DATE("createdAt") ORDER BY day
 - [x] `npx tsc --noEmit` pass
 - [x] Không còn React Compiler warning cho 2 file trên
 - [x] Không còn CSS lint warning cho `@theme`, `@custom-variant` trong globals.css
+
+---
+
+# Round 2 — Phase 12-16 (New Updates)
+
+## Context Round 2
+
+Sau Phase 11, beta sẵn sàng cho 3-5 user thử. User đề xuất 5 ideas mới cho admin web. Round này phản hồi từng idea với pushback rõ ràng + đề xuất implementation.
+
+**Mục tiêu**: thêm khả năng giám sát Reviews + External API quota (chống burn quota trong beta) + cải thiện code quality.
+
+---
+
+## Tổng kết phản hồi 5 ideas
+
+| Idea                              | Recommendation                | Lý do                                                                                            |
+| --------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| **1. Reviews mgmt page**          | ✅ BUILD                      | Critical visibility cho beta. Bao gồm Grammar/Idiom quiz (đã log)                                |
+| **2. External services page**     | ✅ BUILD + new DB model       | Critical chống quota burn. Cần `ApiUsageDaily` table, không thể chỉ in-memory                    |
+| **3. Categories admin page**      | ❌ **SKIP** (chỉ 2 stat card) | Categories per-user, không phải shared content → admin CRUD vô nghĩa                             |
+| **4. Users/Words CRUD đầy đủ**    | ⚠️ **MOSTLY SKIP**            | Users dùng Google OAuth, không Create được. Word phức tạp (contexts/examples). View+Delete đã đủ |
+| **5. Shared DataTable component** | ✅ BUILD đầu tiên             | Refactor foundation — 4 table hiện đã copy-paste 80% code                                        |
+
+**Bổ sung tui phát hiện**: Announcements hiện chỉ có Toggle + Delete, **thiếu Update**. Đây là Update DUY NHẤT đáng làm vì typo trong announcement hiển thị cho mọi user.
+
+---
+
+## Pushback chi tiết — 3 ideas tui không khuyến nghị
+
+### Idea 3 — Categories admin page → SKIP
+
+**Lý do**: Category là per-user taxonomy ("Business", "Travel" của riêng từng người). Admin không có lý do để rename/delete categories của user khác — đó là quyền user.
+
+**Thay vào đó**: thêm 2 stat card vào trang Overview (`/admin`):
+
+- `Avg Categories/User` — tổng categories / tổng users
+- `% Words With Category` — % word đã được tag
+
+→ Đủ visibility xem feature có được dùng không, KHÔNG cần page riêng.
+
+### Idea 4 — Full CRUD Users/Words → MOSTLY SKIP
+
+**Users**:
+
+- ❌ **Create**: Không thể. Account tạo qua Google OAuth tự động khi user lần đầu sign-in.
+- ❌ **Update**: Email/avatar bind từ Google. Field `name` có thể edit nhưng admin không bao giờ thấy name của user khác trong flow bình thường → low value.
+- ✅ Giữ nguyên View + Delete.
+
+**Words**:
+
+- ❌ **Create**: Word là user-owned (`userId` FK). Admin tạo word cho user nào? Không có use case.
+- ❌ **Update**: Edit term + nhiều contexts + examples = UI phức tạp. User tự edit ở `/words/[id]/edit` được rồi. Admin chỉ cần delete khi spam.
+- ✅ Giữ nguyên View + Delete.
+
+**Bổ sung mới**: thêm `updateAnnouncement(id, {title, content, expiresAt})` — sửa typo announcement (~30 LoC).
+
+**Các page nào CẦN thêm CRUD?**
+
+- Feedback: đã có status update ✅
+- Audit Log: read-only by design ✅
+- Reviews (Phase 15 mới): chỉ view + drill-down, không CRUD (review event là hard fact, không sửa)
+- API Usage (Phase 14 mới): read-only
+
+→ **Kết luận**: chỉ 1 thứ duy nhất cần thêm là `updateAnnouncement`.
+
+---
+
+## Phase 12 — Shared DataTable Component (Refactor)
+
+> **Build đầu tiên**: tất cả phase sau dùng component này.
+
+### 12.1. Tạo `components/admin/data-table.tsx`
+
+```ts
+type Column<T> = {
+  key: string;
+  header: ReactNode;
+  cell: (row: T) => ReactNode;
+  className?: string; // td className
+  headerClassName?: string; // th className
+};
+
+type DataTableProps<T> = {
+  columns: Column<T>[];
+  rows: T[];
+  rowKey: (row: T) => string;
+  empty?: ReactNode;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    basePath: string;
+    searchParams?: Record<string, string>; // preserve filter/q
+  };
+};
+```
+
+- Client component (cell callbacks closure server actions qua `useTransition` ở caller)
+- Outer styling cố định: `border border-foreground/20 [&_thead_tr]:bg-primary/10 [&_thead_tr]:border-foreground/20 [&_tbody_tr]:border-foreground/8 overflow-hidden rounded-xl`
+- Pagination component nội bộ (Prev/Next link với `?page=N` + preserve other params)
+- Empty state mặc định: "No data" — overridable
+
+### 12.2. Migrate 6 tables hiện có
+
+- [x] `users-client.tsx` — column array thay TableHeader/Body
+- [x] `words-client.tsx`
+- [x] `feedback-client.tsx` — extract `<StatusSelect>` per-row component
+- [x] `announcements-client.tsx` — extract `<AnnouncementActions>` per-row component
+- [x] `audit/page.tsx` (table inline trong page)
+- [x] `admin/page.tsx` (Recent Actions table)
+
+### 12.3. Bug fix
+
+- [x] `announcement-banner.tsx`: `getServerSnapshot` trả `[]` literal → new reference mỗi call → vòng lặp vô hạn. Fix: dùng `const EMPTY: string[] = []` module-level.
+
+**Net LoC**: -70 (component +80, xóa duplication -150).
+
+---
+
+## Phase 13 — ApiUsage Tracking (Foundation cho Phase 14)
+
+### 13.1. Prisma schema
+
+```prisma
+model ApiUsageDaily {
+  id      String   @id @default(cuid())
+  date    DateTime @db.Date
+  service String   // "dictionary" | "unsplash" | "groq"
+  userId  String?  // nullable cho global/anonymous
+  count   Int      @default(0)
+  @@unique([date, service, userId])
+  @@index([date, service])
+}
+```
+
+- [ ] Migrate: `npx prisma migrate dev --name add_api_usage_daily`
+
+### 13.2. Helper `lib/admin/apiUsage.ts`
+
+```ts
+export async function recordApiUsage(service: string, userId: string | null) {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  await db.apiUsageDaily
+    .upsert({
+      where: { date_service_userId: { date, service, userId } },
+      create: { date, service, userId, count: 1 },
+      update: { count: { increment: 1 } },
+    })
+    .catch(() => {}); // fire-and-forget — never break user request
+}
+```
+
+### 13.3. Wrap 3 lib calls
+
+- [ ] [lib/dictionary.ts](lib/dictionary.ts) — gọi `recordApiUsage('dictionary', userId)` SAU rate-limit check, TRƯỚC `fetch()`. Dùng `void` (không await blocking).
+- [ ] [lib/unsplash.ts](lib/unsplash.ts) — `recordApiUsage('unsplash', userId)`
+- [ ] [lib/groq.ts](lib/groq.ts) hoặc [app/actions/writing.ts](app/actions/writing.ts) — `recordApiUsage('groq', userId)`
+
+**Tradeoff**: 1 DB upsert/API call. Cho beta scale 3-5 user × 100-200 calls/ngày = 300-1000 upserts/ngày → không đáng kể.
+
+**Tại sao không in-memory only?** Vercel serverless cold-start reset memory. Phải có persistence để xem historical.
+
+---
+
+## Phase 14 — `/admin/api-usage` Page
+
+### 14.1. Queries trong `lib/admin/queries.ts`
+
+- [ ] `fetchApiUsageToday()` → từng service: `{ count, capDaily, percentOfCap, status: 'green'|'yellow'|'red'|'critical' }`
+- [ ] `fetchApiUsage30Days()` → time-series per service (dùng `fillDays`)
+- [ ] `fetchTopUsersByService(service, limit=10)` → top consumers hôm nay
+
+### 14.2. Free-tier caps & threshold logic
+
+| Service       | Daily Cap (free)            | Per-user gợi ý |
+| ------------- | --------------------------- | -------------- |
+| dictionaryapi | unlimited (track only)      | 60/min (đã có) |
+| unsplash      | ~1200 (50/hr × 24)          | 20/min (đã có) |
+| groq          | 14400/day                   | 50/day (đã có) |
+| neon          | N/A — track total row count | —              |
+
+Threshold:
+
+- `consumed/cap < 0.6` → green
+- `0.6-0.8` → yellow
+- `0.8-0.95` → red
+- `>= 0.95` → critical (banner đỏ trên Overview)
+
+### 14.3. UI
+
+- [ ] `app/(admin)/admin/api-usage/page.tsx` — server component
+- [ ] 4 service cards: today usage % + 30-day sparkline + suggested per-user limit
+- [ ] DataTable: top 10 consumers hôm nay (User | Service | Calls Today | % of Daily Cap)
+- [ ] Banner đỏ trên `/admin` nếu bất kỳ service ở trạng thái critical
+- [ ] Loading state
+
+### 14.4. Sidebar
+
+- [ ] Thêm `{ href: '/admin/api-usage', label: 'API Usage', icon: Activity }` vào `admin-sidebar.tsx`
+
+---
+
+## Phase 15 — `/admin/reviews` Page
+
+### 15.1. Queries trong `lib/admin/queries.ts`
+
+- [ ] `fetchReviewsOverview()` — 3 datasets:
+  - `reviewsPerDay30d` — UNION từ 3 bảng (vocab + grammar + idiom), stacked
+  - `reviewsByMode` — counts cho 7 mode: 5 vocab + grammar + idiom
+  - `accuracyByMode` — % correct cho từng mode
+- [ ] `fetchAdminUserReviews(page, pageSize=20)` — per-user summary: `{ userId, email, totalReviews, last7d, accuracy%, favMode, lastActiveAt }`
+- [ ] `fetchUserReviewDetail(userId)` — same 3 charts scope user
+- [ ] `fetchReviewEventsForUser(userId, mode?, page)` — raw events table cho drill-down
+
+> **Note**: `GrammarReviewEvent` và `IdiomReviewEvent` không có cột `mode`. Inject synthetic label `'grammar_quiz'`, `'idiom_quiz'` trong UNION query.
+
+### 15.2. UI
+
+- [ ] `app/(admin)/admin/reviews/page.tsx` — server, 3 charts top + DataTable per-user
+- [ ] `components/admin/reviews-charts.tsx` — client, 3 Recharts:
+  - Stacked AreaChart 30 ngày (vocab/grammar/idiom)
+  - PieChart 7 slices (per-mode distribution)
+  - BarChart accuracy% per mode (color-coded: red < 50%, yellow < 70%, green ≥ 70%)
+- [ ] `app/(admin)/admin/reviews/[userId]/page.tsx` — drill-down, same charts user-scoped + bảng raw events (filter mode dropdown, paginated 50/page)
+- [ ] Loading states
+
+### 15.3. Cập nhật `activeUsers7d` query
+
+- [ ] Hiện chỉ count distinct user từ `ReviewEvent`. UNION thêm Grammar + Idiom event để chính xác.
+
+### 15.4. Sidebar
+
+- [ ] Thêm `{ href: '/admin/reviews', label: 'Reviews', icon: BarChart3 }` (giữa Words và Feedback)
+
+---
+
+## Phase 16 — Polish
+
+### 16.1. Update Announcement (1 thứ CRUD duy nhất đáng thêm)
+
+- [ ] `app/actions/admin.ts` — thêm `updateAnnouncement(id, raw)` với `announcementSchema` + audit `UPDATE_ANNOUNCEMENT`
+- [ ] `announcements-client.tsx` — thêm Edit dialog (tái dụng form từ Create)
+
+### 16.2. Category stats trên Overview
+
+- [ ] `lib/admin/queries.ts` — thêm vào `fetchAdminDashboardStats`: `avgCategoriesPerUser`, `wordsWithCategoryPct`
+- [ ] `app/(admin)/admin/page.tsx` — thêm 2 HeroCard
+
+---
+
+## Critical Files (Round 2)
+
+```
+prisma/schema.prisma                                 ← thêm ApiUsageDaily
+lib/admin/queries.ts                                 ← +5 queries (api usage + reviews)
+lib/admin/apiUsage.ts                                ← MỚI — recordApiUsage helper
+lib/dictionary.ts, lib/unsplash.ts, lib/groq.ts     ← thêm tracking call
+app/actions/admin.ts                                 ← + updateAnnouncement
+
+components/admin/data-table.tsx                      ← MỚI — Phase 12 foundation
+components/admin/reviews-charts.tsx                  ← MỚI — Phase 15
+components/admin/admin-sidebar.tsx                   ← +2 nav items
+
+app/(admin)/admin/api-usage/page.tsx                 ← MỚI — Phase 14
+app/(admin)/admin/reviews/page.tsx                   ← MỚI — Phase 15
+app/(admin)/admin/reviews/[userId]/page.tsx          ← MỚI — drill-down
+
+app/(admin)/admin/{users,words,feedback,announcements,audit}/*.tsx ← migrate to DataTable
+app/(admin)/admin/page.tsx                           ← + 2 category stat cards + critical banner
+```
+
+---
+
+## Phasing & Estimates
+
+| Phase  | Scope                                     | Net LoC | Days  |
+| ------ | ----------------------------------------- | ------- | ----- |
+| **12** | DataTable + migrate 4 tables              | -70     | 0.5   |
+| **13** | ApiUsage schema + tracking helper         | +180    | 0.5   |
+| **14** | `/admin/api-usage` page + critical banner | +250    | 1.0   |
+| **15** | `/admin/reviews` overview + drill-down    | +400    | 1.5   |
+| **16** | updateAnnouncement + category stats       | +60     | 0.25  |
+| Total  |                                           | +820    | ~3.75 |
+
+**Order rationale**: 12 first (foundation cho mọi page sau) → 13 trước 14 (cần data trước UI) → 14 trước 15 (quota burn risk > review visibility risk) → 16 cuối (polish).
+
+---
+
+## Risks & Edge Cases
+
+1. **Chicken-and-egg Neon tracking**: `.catch(() => {})` trong `recordApiUsage` — Neon fail thì silent miss 1-2 counts, không break user request.
+2. **UTC date boundary**: dùng `setUTCHours(0,0,0,0)` để tránh duplicate row cùng ngày khác timezone.
+3. **In-memory rate limiter (`lib/rateLimit.ts`)**: KHÔNG được fix bởi `ApiUsageDaily` (đó là historical, không phải current-window). Cold start vẫn reset rate limit. → Defer thành Phase 17 nếu cần persisted rate limit.
+4. **Word delete cascade**: trước khi merge Phase 15, verify `ReviewEvent.wordId` cascade hoặc set null khi delete word — nếu không sẽ FK violation.
+5. **React Compiler**: column `cell()` callbacks tự được memoize, không cần `useMemo` thủ công.
+6. **GrammarReviewEvent/IdiomReviewEvent không có `mode`**: inject synthetic label trong raw SQL UNION.
+
+---
+
+## Verification — Test trước khi merge từng phase
+
+### Phase 12
+
+- [ ] 4 trang admin render giống y trước refactor (visual diff)
+- [ ] Pagination giữ filter (q ở Words, status ở Feedback) khi click Next
+- [ ] Delete dialog vẫn hoạt động trên Users/Words
+
+### Phase 13-14
+
+- [ ] Login thường, gọi auto-fetch dictionary 1 word → DB có row mới trong `ApiUsageDaily`
+- [ ] Gọi 2 lần liên tiếp → `count=2` (không tạo 2 row)
+- [ ] Force unsplash error → user request KHÔNG fail (fire-and-forget verified)
+- [ ] `/admin/api-usage` hiển thị đúng 4 service card + sparkline
+- [ ] Set `consumed/cap > 0.95` (manual SQL) → banner đỏ hiện trên `/admin`
+
+### Phase 15
+
+- [ ] Tạo 5 review events vocab + 3 grammar quiz + 2 idiom quiz cho 1 user
+- [ ] `/admin/reviews` Pie chart hiển thị đúng 3 slice (vocab + grammar + idiom)
+- [ ] Click row user → drill-down show đúng 10 events
+- [ ] `activeUsers7d` count đúng sau khi UNION 3 bảng
+- [ ] Mode filter trong drill-down hoạt động
+
+### Phase 16
+
+- [ ] Edit announcement → audit log có row `UPDATE_ANNOUNCEMENT`
+- [ ] Overview hiển thị `Avg Categories/User` + `% Words With Category` chính xác
+
+### Final
+
+- [ ] `npx tsc --noEmit` pass
+- [ ] `npm run build` pass
+- [ ] Login non-admin email → tất cả `/admin/*` redirect `/dashboard`

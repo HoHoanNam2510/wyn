@@ -30,9 +30,10 @@ function subscribe(callback: () => void) {
   return () => listeners.delete(callback);
 }
 
-// Server always returns [] — matches initial client hydration, no mismatch
+// Stable empty reference — getServerSnapshot must return the same reference every call
+const EMPTY: string[] = [];
 function getServerSnapshot(): string[] {
-  return [];
+  return EMPTY;
 }
 
 function saveDismissed(ids: string[]) {
