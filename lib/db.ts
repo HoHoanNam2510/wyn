@@ -2,6 +2,8 @@ import { PrismaClient } from '@/app/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 function buildConnectionString(url: string | undefined): string | undefined {
   if (!url) return url;
   try {
@@ -19,13 +21,23 @@ function buildConnectionString(url: string | undefined): string | undefined {
 }
 
 function createPrismaClient() {
-  const pool = new Pool({
-    connectionString: buildConnectionString(process.env.DATABASE_URL),
-    ssl: { rejectUnauthorized: true },
-    max: 3,
-    connectionTimeoutMillis: 60_000, // 60s — enough for Neon cold start
-    idleTimeoutMillis: 10_000, // 10s — evict before Neon's proxy kills them
-  });
+  const pool = new Pool(
+    isDev
+      ? {
+          connectionString: buildConnectionString(process.env.DIRECT_URL),
+          ssl: { rejectUnauthorized: true },
+          max: 3,
+          connectionTimeoutMillis: 30_000,
+          idleTimeoutMillis: 60_000,
+        }
+      : {
+          connectionString: buildConnectionString(process.env.DATABASE_URL),
+          ssl: { rejectUnauthorized: true },
+          max: 3,
+          connectionTimeoutMillis: 60_000, // 60s — enough for Neon cold start
+          idleTimeoutMillis: 10_000, // 10s — evict before Neon's proxy kills them
+        }
+  );
 
   // When Neon terminates an idle connection, pg-pool emits 'error'.
   // Without this handler Node.js throws an unhandled error and crashes the request.
