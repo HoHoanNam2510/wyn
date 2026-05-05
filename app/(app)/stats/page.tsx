@@ -8,6 +8,7 @@ import {
   Zap,
   Target,
   BrainCircuit,
+  MessageSquareQuote,
 } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { fetchStats } from '@/lib/stats/queries';
@@ -18,6 +19,7 @@ import {
   AccuracyPerDayChart,
   CategoryDonutChart,
   GrammarSectionAccuracyChart,
+  IdiomCategoryAccuracyChart,
 } from './stats-charts';
 import { HeroCard } from '@/components/shared/hero-card';
 
@@ -95,6 +97,43 @@ function GrammarStrugglingTable({
   );
 }
 
+function IdiomStrugglingTable({
+  idioms,
+}: {
+  idioms: StatsData['idiomStrugglingIdioms'];
+}) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <AlertTriangle className="h-4 w-4 text-destructive" />
+        <p className="text-sm font-semibold">
+          Struggling idioms ({idioms.length})
+        </p>
+      </div>
+      <div className="divide-y divide-border">
+        {idioms.map((item) => (
+          <div key={item.idiomId} className="py-2.5 space-y-0.5">
+            <div className="flex items-center gap-3">
+              <span className="flex-1 text-sm font-medium truncate">
+                {item.phrase}
+              </span>
+              <span className="text-xs text-muted-foreground shrink-0">
+                {item.totalAttempts} attempts
+              </span>
+              <span className="text-xs font-semibold text-destructive w-10 text-right shrink-0">
+                {item.accuracy}%
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {item.categoryTitle}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function StatsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/sign-in');
@@ -102,6 +141,7 @@ export default async function StatsPage() {
   const stats = await fetchStats(session.user.id);
   const hasReviews = stats.reviewsPerDay.some((d) => d.count > 0);
   const hasGrammarData = stats.grammarTotalAnswers > 0;
+  const hasIdiomData = stats.idiomTotalAnswers > 0;
 
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
@@ -241,6 +281,71 @@ export default async function StatsPage() {
         ) : (
           <div className="rounded-xl border border-border bg-muted/40 px-5 py-4 text-sm text-muted-foreground">
             Complete some grammar quiz sessions to see your pattern accuracy.
+          </div>
+        )}
+      </div>
+
+      {/* ── Idiom Quiz section ──────────────────────────────────────────── */}
+      <div className="pt-2 border-t border-border">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold">Idiom Quiz</h2>
+            <p className="text-sm text-muted-foreground">
+              Idiom identification accuracy
+            </p>
+          </div>
+          <Link
+            href="/idioms/quiz"
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            Take a quiz →
+          </Link>
+        </div>
+
+        {hasIdiomData ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <HeroCard
+                label="Quiz answers total"
+                value={stats.idiomTotalAnswers}
+                icon={<MessageSquareQuote className="h-5 w-5" />}
+                accent
+              />
+              <HeroCard
+                label="Overall idiom accuracy"
+                value={
+                  stats.idiomOverallAccuracy !== null
+                    ? `${stats.idiomOverallAccuracy}%`
+                    : '—'
+                }
+                icon={<Target className="h-5 w-5" />}
+                accent={
+                  stats.idiomOverallAccuracy !== null &&
+                  stats.idiomOverallAccuracy >= 70
+                }
+              />
+            </div>
+
+            {stats.idiomStrugglingIdioms.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ChartCard title="Accuracy by category">
+                  <IdiomCategoryAccuracyChart
+                    data={stats.idiomAccuracyPerCategory}
+                  />
+                </ChartCard>
+                <IdiomStrugglingTable idioms={stats.idiomStrugglingIdioms} />
+              </div>
+            ) : (
+              <ChartCard title="Accuracy by category">
+                <IdiomCategoryAccuracyChart
+                  data={stats.idiomAccuracyPerCategory}
+                />
+              </ChartCard>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border bg-muted/40 px-5 py-4 text-sm text-muted-foreground">
+            Complete some idiom quiz sessions to see your accuracy by category.
           </div>
         )}
       </div>

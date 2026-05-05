@@ -23,6 +23,19 @@ export type GrammarPatternStruggleStat = {
   totalAttempts: number;
 };
 
+export type IdiomCategoryAccuracyStat = {
+  categoryTitle: string;
+  accuracy: number;
+  totalAttempts: number;
+};
+export type IdiomStruggleStat = {
+  idiomId: string;
+  phrase: string;
+  categoryTitle: string;
+  accuracy: number;
+  totalAttempts: number;
+};
+
 export type StatsData = {
   wordsPerDay: DayStat[];
   reviewsPerDay: DayStat[];
@@ -37,6 +50,10 @@ export type StatsData = {
   grammarOverallAccuracy: number | null;
   grammarAccuracyPerSection: GrammarSectionAccuracyStat[];
   grammarStrugglingPatterns: GrammarPatternStruggleStat[];
+  idiomTotalAnswers: number;
+  idiomOverallAccuracy: number | null;
+  idiomAccuracyPerCategory: IdiomCategoryAccuracyStat[];
+  idiomStrugglingIdioms: IdiomStruggleStat[];
 };
 
 function last30DayKeys(): string[] {
@@ -89,6 +106,9 @@ export async function fetchStats(userId: string): Promise<StatsData> {
     grammarPerSectionRaw,
     grammarStrugglingRaw,
     srsDueRaw,
+    idiomOverallRaw,
+    idiomPerCategoryRaw,
+    idiomStrugglingRaw,
   ] = await Promise.all([
     db.$queryRaw<{ day: string; count: number }[]>`
       SELECT
@@ -217,6 +237,55 @@ export async function fetchStats(userId: string): Promise<StatsData> {
       WHERE "userId" = ${userId}
         AND ("nextReviewAt" IS NULL OR "nextReviewAt" <= NOW())
     `,
+    db.$queryRaw<{ totalanswers: number; overallaccuracy: number | null }[]>`
+      SELECT
+        COUNT(*)::int AS totalanswers,
+        CASE WHEN COUNT(*) > 0
+          THEN ROUND(AVG(CASE WHEN correct THEN 100.0 ELSE 0.0 END))::int
+          ELSE NULL
+        END AS overallaccuracy
+      FROM "IdiomReviewEvent"
+      WHERE "userId" = ${userId}
+    `,
+    db.$queryRaw<
+      { categorytitle: string; accuracy: number; totalattempts: number }[]
+    >`
+      SELECT
+        ic.title AS categorytitle,
+        ROUND(AVG(CASE WHEN ire.correct THEN 100.0 ELSE 0.0 END))::int AS accuracy,
+        COUNT(*)::int AS totalattempts
+      FROM "IdiomReviewEvent" ire
+      JOIN "Idiom" i ON i.id = ire."idiomId"
+      JOIN "IdiomCategory" ic ON ic.id = i."categoryId"
+      WHERE ire."userId" = ${userId}
+      GROUP BY ic.id, ic.title, ic.order
+      ORDER BY ic.order
+    `,
+    db.$queryRaw<
+      {
+        idiomid: string;
+        phrase: string;
+        categorytitle: string;
+        accuracy: number;
+        totalattempts: number;
+      }[]
+    >`
+      SELECT
+        i.id AS idiomid,
+        i.phrase,
+        ic.title AS categorytitle,
+        ROUND(AVG(CASE WHEN ire.correct THEN 100.0 ELSE 0.0 END))::int AS accuracy,
+        COUNT(*)::int AS totalattempts
+      FROM "IdiomReviewEvent" ire
+      JOIN "Idiom" i ON i.id = ire."idiomId"
+      JOIN "IdiomCategory" ic ON ic.id = i."categoryId"
+      WHERE ire."userId" = ${userId}
+      GROUP BY i.id, i.phrase, ic.title
+      HAVING COUNT(*) >= 3
+         AND AVG(CASE WHEN ire.correct THEN 1.0 ELSE 0.0 END) < 0.5
+      ORDER BY AVG(CASE WHEN ire.correct THEN 1.0 ELSE 0.0 END) ASC
+      LIMIT 5
+    `,
   ]);
 
   const wordsMap = new Map(wordsRaw.map((r) => [r.day, r.count]));
@@ -233,6 +302,7 @@ export async function fetchStats(userId: string): Promise<StatsData> {
   ];
 
   const grammarOverall = grammarOverallRaw[0];
+  const idiomOverall = idiomOverallRaw[0];
 
   return {
     wordsPerDay: days.map((day) => ({ day, count: wordsMap.get(day) ?? 0 })),
@@ -266,6 +336,20 @@ export async function fetchStats(userId: string): Promise<StatsData> {
       patternId: r.patternid,
       patternTitle: r.patterntitle,
       sectionTitle: r.sectiontitle,
+      accuracy: r.accuracy,
+      totalAttempts: r.totalattempts,
+    })),
+    idiomTotalAnswers: idiomOverall?.totalanswers ?? 0,
+    idiomOverallAccuracy: idiomOverall?.overallaccuracy ?? null,
+    idiomAccuracyPerCategory: idiomPerCategoryRaw.map((r) => ({
+      categoryTitle: r.categorytitle,
+      accuracy: r.accuracy,
+      totalAttempts: r.totalattempts,
+    })),
+    idiomStrugglingIdioms: idiomStrugglingRaw.map((r) => ({
+      idiomId: r.idiomid,
+      phrase: r.phrase,
+      categoryTitle: r.categorytitle,
       accuracy: r.accuracy,
       totalAttempts: r.totalattempts,
     })),
