@@ -194,3 +194,91 @@ Production **không thay đổi gì**.
 ## Tại sao lỗi này cứ tái phát
 
 Các lần fix trước chỉ vá triệu chứng (timeout, error handler) mà không xử lý root cause: **dùng pooler URL trong persistent dev server**. PgBouncer được thiết kế cho serverless — kết nối ngắn hạn, nhiều client cùng lúc. Trong dev server chạy liên tục, pooler gây ra vòng lặp cold start không thể tránh khỏi dù có tune timeout thế nào.
+
+---
+
+---
+
+# Lỗi 2 — Next.js `.next/dev` Cache Corruption
+
+## Triệu chứng
+
+- Một số trang hiển thị **404** (trang `app/not-found.tsx`) dù file route tồn tại (ví dụ: `/review/srs`)
+- **Tất cả** các trang khác (trừ một số trang đang hoạt động) có lỗi trong browser console:
+  ```
+  ClientFetchError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON.
+  Read more at https://errors.authjs.dev#autherror
+  ```
+- Không có lỗi TypeScript trong code người dùng (`tsc --noEmit` exit 0)
+- Chỉ xảy ra ở dev environment, production không bị ảnh hưởng
+
+## Root Cause
+
+**`.next/dev/types/` bị corrupt sau khi Next.js HMR ghi đè file đồng thời.**
+
+Khi thêm file/thư mục mới vào `app/` trong khi dev server đang chạy (hot reload), Next.js tự động regenerate các file type:
+
+- `.next/dev/types/routes.d.ts` — type map tất cả các route
+- `.next/dev/types/validator.ts` — type validator cho từng page
+
+Trên Windows + Node.js, các concurrent write vào các file này có thể gây corrupt — ví dụ dòng bị cắt đứt giữa chừng:
+
+```
+// routes.d.ts bị corrupt — dòng 89 chỉ còn "nts" (tail của chữ "Contents")
+interface RouteContext<...> {
+  params: Promise<...>
+}
+}
+nts           ← fragment bị corrupt
+   * @example
+```
+
+Khi `.next/dev/` ở trạng thái corrupt:
+
+1. Dev server không resolve được route → trả về `app/not-found.tsx` (404)
+2. Dev server trả về HTML error page thay vì JSON cho `/api/auth/session`
+3. `SessionProvider` (trong root layout) parse HTML → throw `ClientFetchError`
+
+## Cách xác nhận
+
+Chạy `npx tsc --noEmit` — nếu thấy lỗi trong `.next/dev/types/`:
+
+```
+.next/dev/types/routes.d.ts(90,14): error TS1109: Expression expected.
+.next/dev/types/routes.d.ts(97,5): error TS1161: Unterminated regular expression literal.
+.next/dev/types/validator.ts(242,4): error TS1434: Unexpected keyword or identifier.
+```
+
+→ Đây là dấu hiệu chắc chắn của corrupt cache. Không phải lỗi trong code.
+
+## Fix (30 giây)
+
+```bash
+# 1. Dừng dev server (Ctrl+C)
+# 2. Xoá toàn bộ cache
+rm -rf .next
+# 3. Restart dev server
+npm run dev
+```
+
+Cold start lần đầu sau khi xoá `.next/` mất ~15–30s (Next.js compile lại toàn bộ). Sau đó HMR hoạt động bình thường.
+
+## Khi nào xảy ra
+
+Thường xảy ra khi **thêm file/thư mục mới vào `app/`** (đặc biệt thư mục con của route group) trong khi dev server đang chạy:
+
+- Thêm route mới: `app/(admin)/admin/reviews/page.tsx`
+- Thêm sub-route: `app/(admin)/admin/reviews/[userId]/page.tsx`
+- Thêm component mới import từ file đã được cache
+
+HMR cố gắng regenerate route map đồng thời với request đang xử lý → race condition → corrupt.
+
+## Phòng tránh
+
+Khi thêm **thư mục route mới** (không phải chỉnh sửa file đã có), nên:
+
+1. Tạo file xong
+2. Dừng dev server
+3. `rm -rf .next && npm run dev`
+
+Với việc chỉnh sửa file đã tồn tại, HMR hoạt động ổn định — không cần restart.

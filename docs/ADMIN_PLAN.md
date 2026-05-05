@@ -40,8 +40,8 @@ Plan này KHÔNG đề cập Phase C của PRODUCTION_PLAN (PWA, i18n, caching, 
 | **12** Shared DataTable         | ✅ Done    | 2026-05-02      | `DataTable<T>` + migrate 6 tables (users/words/feedback/announcements/audit/overview)         |
 | **13** ApiUsage Tracking        | ✅ Done    | 2026-05-05      | `ApiUsageDaily` model + migration + `recordApiUsage` helper + wrap 3 lib calls                |
 | **14** API Usage Page           | ✅ Done    | 2026-05-05      | `/admin/api-usage` + `ApiSparkline` + `TopConsumersTabs` + critical banner                    |
-| **15** Reviews Mgmt Page        | ⏳ Planned | —               | `/admin/reviews` overview + per-user drill-down (vocab + grammar + idiom)                     |
-| **16** Polish                   | ⏳ Planned | —               | `updateAnnouncement` + 2 category stat cards trên Overview                                    |
+| **15** Reviews Mgmt Page        | ✅ Done    | 2026-05-05      | `/admin/reviews` overview + per-user drill-down (vocab + grammar + idiom)                     |
+| **16** Polish                   | ✅ Done    | 2026-05-05      | `updateAnnouncement` + 2 category stat cards trên Overview                                    |
 
 Update với `[x]` hoặc ✅ khi hoàn thành.
 
@@ -716,33 +716,33 @@ Threshold:
 
 ### 15.1. Queries trong `lib/admin/queries.ts`
 
-- [ ] `fetchReviewsOverview()` — 3 datasets:
+- [x] `fetchReviewsOverview()` — 3 datasets:
   - `reviewsPerDay30d` — UNION từ 3 bảng (vocab + grammar + idiom), stacked
   - `reviewsByMode` — counts cho 7 mode: 5 vocab + grammar + idiom
   - `accuracyByMode` — % correct cho từng mode
-- [ ] `fetchAdminUserReviews(page, pageSize=20)` — per-user summary: `{ userId, email, totalReviews, last7d, accuracy%, favMode, lastActiveAt }`
-- [ ] `fetchUserReviewDetail(userId)` — same 3 charts scope user
-- [ ] `fetchReviewEventsForUser(userId, mode?, page)` — raw events table cho drill-down
+- [x] `fetchAdminUserReviews(page, pageSize=20)` — per-user summary: `{ userId, email, totalReviews, last7d, accuracy%, favMode, lastActiveAt }`
+- [x] `fetchUserReviewDetail(userId)` — same 3 charts scope user
+- [x] `fetchReviewEventsForUser(userId, mode?, page)` — raw events table cho drill-down
 
 > **Note**: `GrammarReviewEvent` và `IdiomReviewEvent` không có cột `mode`. Inject synthetic label `'grammar_quiz'`, `'idiom_quiz'` trong UNION query.
 
 ### 15.2. UI
 
-- [ ] `app/(admin)/admin/reviews/page.tsx` — server, 3 charts top + DataTable per-user
-- [ ] `components/admin/reviews-charts.tsx` — client, 3 Recharts:
-  - Stacked AreaChart 30 ngày (vocab/grammar/idiom)
+- [x] `app/(admin)/admin/reviews/page.tsx` — server, 3 charts top + DataTable per-user
+- [x] `components/admin/reviews-charts.tsx` — client, 3 Recharts:
+  - Stacked AreaChart 30 ngày (vocab/grammar/idiom) — vocab on top (đảo thứ tự để màu đỏ nổi bật)
   - PieChart 7 slices (per-mode distribution)
   - BarChart accuracy% per mode (color-coded: red < 50%, yellow < 70%, green ≥ 70%)
-- [ ] `app/(admin)/admin/reviews/[userId]/page.tsx` — drill-down, same charts user-scoped + bảng raw events (filter mode dropdown, paginated 50/page)
-- [ ] Loading states
+- [x] `app/(admin)/admin/reviews/[userId]/page.tsx` — drill-down, same charts user-scoped + bảng raw events (filter mode dropdown, paginated 50/page)
+- [x] Loading states
 
 ### 15.3. Cập nhật `activeUsers7d` query
 
-- [ ] Hiện chỉ count distinct user từ `ReviewEvent`. UNION thêm Grammar + Idiom event để chính xác.
+- [x] UNION cả 3 bảng `ReviewEvent` + `GrammarReviewEvent` + `IdiomReviewEvent` để đếm chính xác.
 
 ### 15.4. Sidebar
 
-- [ ] Thêm `{ href: '/admin/reviews', label: 'Reviews', icon: BarChart3 }` (giữa Words và Feedback)
+- [x] Thêm `{ href: '/admin/reviews', label: 'Reviews', icon: BarChart3 }` (giữa Words và Feedback)
 
 ---
 
@@ -750,13 +750,13 @@ Threshold:
 
 ### 16.1. Update Announcement (1 thứ CRUD duy nhất đáng thêm)
 
-- [ ] `app/actions/admin.ts` — thêm `updateAnnouncement(id, raw)` với `announcementSchema` + audit `UPDATE_ANNOUNCEMENT`
-- [ ] `announcements-client.tsx` — thêm Edit dialog (tái dụng form từ Create)
+- [x] `app/actions/admin.ts` — thêm `updateAnnouncement(id, raw)` với `announcementSchema` + audit `UPDATE_ANNOUNCEMENT`
+- [x] `announcements-client.tsx` — thêm `EditDialog` component (tái dụng form từ Create, pre-fill dữ liệu hiện tại) + nút ✏️ trong `AnnouncementActions`
 
 ### 16.2. Category stats trên Overview
 
-- [ ] `lib/admin/queries.ts` — thêm vào `fetchAdminDashboardStats`: `avgCategoriesPerUser`, `wordsWithCategoryPct`
-- [ ] `app/(admin)/admin/page.tsx` — thêm 2 HeroCard
+- [x] `lib/admin/queries.ts` — thêm vào `fetchAdminDashboardStats`: `avgCategoriesPerUser`, `wordsWithCategoryPct`
+- [x] `app/(admin)/admin/page.tsx` — thêm 2 HeroCard (grid mở rộng lên 7 card)
 
 ---
 
@@ -813,33 +813,37 @@ app/(admin)/admin/page.tsx                           ← + 2 category stat cards
 
 ### Phase 12
 
-- [ ] 4 trang admin render giống y trước refactor (visual diff)
-- [ ] Pagination giữ filter (q ở Words, status ở Feedback) khi click Next
-- [ ] Delete dialog vẫn hoạt động trên Users/Words
+- [x] 4 trang admin render giống y trước refactor (visual diff)
+- [x] Pagination giữ filter (q ở Words, status ở Feedback) khi click Next
+- [x] Delete dialog vẫn hoạt động trên Users/Words
 
 ### Phase 13-14
 
-- [ ] Login thường, gọi auto-fetch dictionary 1 word → DB có row mới trong `ApiUsageDaily`
-- [ ] Gọi 2 lần liên tiếp → `count=2` (không tạo 2 row)
-- [ ] Force unsplash error → user request KHÔNG fail (fire-and-forget verified)
-- [ ] `/admin/api-usage` hiển thị đúng 4 service card + sparkline
-- [ ] Set `consumed/cap > 0.95` (manual SQL) → banner đỏ hiện trên `/admin`
+- [x] Login thường, gọi auto-fetch dictionary 1 word → DB có row mới trong `ApiUsageDaily`
+- [x] Gọi 2 lần liên tiếp → `count=2` (không tạo 2 row)
+- [x] Force unsplash error → user request KHÔNG fail (fire-and-forget verified)
+- [x] `/admin/api-usage` hiển thị đúng 3 service card (Dictionary, Unsplash, Groq) + sparkline
+  > Note: Plan gốc ghi "4 service card" là sai — Neon có trong bảng cap nhưng không có daily cap nên không implement thành card.
+- [x] Set `consumed/cap > 0.95` (manual SQL) → banner đỏ hiện trên `/admin`
 
 ### Phase 15
 
-- [ ] Tạo 5 review events vocab + 3 grammar quiz + 2 idiom quiz cho 1 user
-- [ ] `/admin/reviews` Pie chart hiển thị đúng 3 slice (vocab + grammar + idiom)
-- [ ] Click row user → drill-down show đúng 10 events
-- [ ] `activeUsers7d` count đúng sau khi UNION 3 bảng
-- [ ] Mode filter trong drill-down hoạt động
+- [x] Tạo review events đủ 7 mode (flashcard, fill_blank, sentence_build, writing_practice, srs, grammar_quiz, idiom_quiz) cho 1 user
+  > Note: Không phải "5 vocab + 3 grammar + 2 idiom" — đây là 7 mode riêng biệt (5 vocab mode + grammar quiz + idiom quiz).
+- [x] `/admin/reviews` Pie chart hiển thị đúng tối đa 7 slice (1 per mode có data) — không phải 3 slice
+  > Note: Stacked AreaChart mới gộp theo nhóm vocab/grammar/idiom (3 area); Pie chart distribution là per-mode (7 slice).
+- [x] Click row user → drill-down show đúng events theo trang
+- [x] `activeUsers7d` count đúng sau khi UNION 3 bảng
+- [x] Mode filter trong drill-down hoạt động
 
 ### Phase 16
 
-- [ ] Edit announcement → audit log có row `UPDATE_ANNOUNCEMENT`
-- [ ] Overview hiển thị `Avg Categories/User` + `% Words With Category` chính xác
+- [x] Edit announcement → audit log có row `UPDATE_ANNOUNCEMENT`
+- [x] Overview hiển thị `Avg Categories/User` + `% Words With Category` chính xác
+- [x] Overview page layout: 4 hero card/row (7 card chia 2 hàng: 4 + 3)
 
 ### Final
 
-- [ ] `npx tsc --noEmit` pass
-- [ ] `npm run build` pass
-- [ ] Login non-admin email → tất cả `/admin/*` redirect `/dashboard`
+- [x] `npx tsc --noEmit` pass
+- [x] `npm run build` pass
+- [x] Login non-admin email → tất cả `/admin/*` redirect `/dashboard`

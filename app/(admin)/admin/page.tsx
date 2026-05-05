@@ -5,6 +5,8 @@ import {
   MessageSquare,
   Activity,
   AlertTriangle,
+  Tag,
+  Layers,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -79,6 +81,8 @@ export default async function AdminOverviewPage() {
       totalReviews: 0,
       openFeedback: 0,
       activeUsers7d: 0,
+      avgCategoriesPerUser: 0,
+      wordsWithCategoryPct: 0,
       usersPerDay: [],
       wordsPerDay: [],
       reviewsPerDay: [],
@@ -108,7 +112,7 @@ export default async function AdminOverviewPage() {
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <HeroCard
           label="Total Users"
           value={stats.totalUsers.toLocaleString()}
@@ -138,6 +142,18 @@ export default async function AdminOverviewPage() {
           value={stats.activeUsers7d.toLocaleString()}
           icon={<Activity className="h-5 w-5" />}
           accent={stats.activeUsers7d > 0}
+        />
+        <HeroCard
+          label="Avg Categories/User"
+          value={stats.avgCategoriesPerUser.toLocaleString()}
+          icon={<Tag className="h-5 w-5" />}
+          accent={stats.avgCategoriesPerUser > 0}
+        />
+        <HeroCard
+          label="Words With Category"
+          value={`${stats.wordsWithCategoryPct}%`}
+          icon={<Layers className="h-5 w-5" />}
+          accent={stats.wordsWithCategoryPct > 0}
         />
       </div>
 

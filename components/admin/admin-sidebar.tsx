@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Users,
   BookOpen,
+  BarChart3,
   MessageSquare,
   Megaphone,
   ScrollText,
@@ -20,6 +21,7 @@ const navItems = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
   { href: '/admin/users', label: 'Users', icon: Users, exact: false },
   { href: '/admin/words', label: 'Words', icon: BookOpen, exact: false },
+  { href: '/admin/reviews', label: 'Reviews', icon: BarChart3, exact: false },
   {
     href: '/admin/feedback',
     label: 'Feedback',

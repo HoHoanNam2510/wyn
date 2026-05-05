@@ -122,3 +122,25 @@ export async function deleteAnnouncement(id: string) {
   revalidatePath('/admin/announcements');
   return { success: true };
 }
+
+export async function updateAnnouncement(id: string, raw: unknown) {
+  const adminEmail = await requireAdmin();
+  const data = announcementSchema.parse(raw);
+  await db.announcement.update({
+    where: { id },
+    data: {
+      title: data.title,
+      content: data.content,
+      expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+    },
+  });
+  await writeAuditLog({
+    adminEmail,
+    action: 'UPDATE_ANNOUNCEMENT',
+    entityType: 'Announcement',
+    entityId: id,
+    metadata: { title: data.title },
+  });
+  revalidatePath('/admin/announcements');
+  return { success: true };
+}
