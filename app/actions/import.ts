@@ -70,7 +70,7 @@ export async function importWords(data: ImportWord[]): Promise<ImportResult> {
   type DictEntry = { phonetic: string; audioUrl: string };
   const dictEntries = await Promise.all(
     needsFetch.map(async ({ term }) => {
-      const results = await fetchDictionary(term);
+      const results = await fetchDictionary(term, userId);
       const first = results[0];
       return [
         term.toLowerCase(),

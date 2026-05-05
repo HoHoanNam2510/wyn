@@ -20,6 +20,6 @@ export async function GET(req: NextRequest) {
   if (!term)
     return NextResponse.json({ error: 'term required' }, { status: 400 });
 
-  const contexts = await fetchDictionary(term);
+  const contexts = await fetchDictionary(term, session.user.id);
   return NextResponse.json({ contexts });
 }

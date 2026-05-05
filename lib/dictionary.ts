@@ -22,7 +22,14 @@ export type ParsedContext = {
   examples: string[];
 };
 
-export async function fetchDictionary(term: string): Promise<ParsedContext[]> {
+export async function fetchDictionary(
+  term: string,
+  userId?: string
+): Promise<ParsedContext[]> {
+  if (userId) {
+    const { recordApiUsage } = await import('@/lib/admin/apiUsage');
+    void recordApiUsage('dictionary', userId);
+  }
   try {
     const res = await fetch(
       `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(term)}`,

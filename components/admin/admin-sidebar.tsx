@@ -11,6 +11,7 @@ import {
   ScrollText,
   ArrowLeft,
   Settings,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -32,6 +33,12 @@ const navItems = [
     exact: false,
   },
   { href: '/admin/audit', label: 'Audit Log', icon: ScrollText, exact: false },
+  {
+    href: '/admin/api-usage',
+    label: 'API Usage',
+    icon: Activity,
+    exact: false,
+  },
   { href: '/admin/settings', label: 'Settings', icon: Settings, exact: true },
 ];
 

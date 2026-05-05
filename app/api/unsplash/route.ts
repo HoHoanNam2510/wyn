@@ -19,6 +19,6 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q');
   if (!q) return NextResponse.json({ error: 'q required' }, { status: 400 });
 
-  const photos = await searchUnsplash(q);
+  const photos = await searchUnsplash(q, session.user.id);
   return NextResponse.json({ photos });
 }

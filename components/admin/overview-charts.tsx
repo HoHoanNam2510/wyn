@@ -129,3 +129,30 @@ export function ReviewGrowthChart({ data }: { data: DayStat[] }) {
     </ResponsiveContainer>
   );
 }
+
+export function ApiSparkline({
+  data,
+  color = PRIMARY,
+}: {
+  data: DayStat[];
+  color?: string;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={60}>
+      <BarChart data={data} margin={{ top: 2, right: 2, bottom: 0, left: 2 }}>
+        <Tooltip
+          labelFormatter={(l) => fmtDay(String(l))}
+          formatter={(v) => [v, 'Calls']}
+          contentStyle={tooltipStyle}
+          cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+        />
+        <Bar
+          dataKey="count"
+          fill={color}
+          radius={[2, 2, 0, 0]}
+          maxBarSize={8}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}

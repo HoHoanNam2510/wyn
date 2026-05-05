@@ -6,7 +6,14 @@ export type UnsplashPhoto = {
   links: { download_location: string };
 };
 
-export async function searchUnsplash(query: string): Promise<UnsplashPhoto[]> {
+export async function searchUnsplash(
+  query: string,
+  userId?: string
+): Promise<UnsplashPhoto[]> {
+  if (userId) {
+    const { recordApiUsage } = await import('@/lib/admin/apiUsage');
+    void recordApiUsage('unsplash', userId);
+  }
   const key = process.env.UNSPLASH_ACCESS_KEY;
   if (!key) return [];
 

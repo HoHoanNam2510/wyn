@@ -280,3 +280,14 @@ model AuditLog {
 
   @@index([adminEmail, createdAt])
 }
+
+model ApiUsageDaily {
+  id      String   @id @default(cuid())
+  date    DateTime @db.Date
+  service String
+  userId  String?
+  count   Int      @default(0)
+
+  @@unique([date, service, userId])
+  @@index([date, service])
+}

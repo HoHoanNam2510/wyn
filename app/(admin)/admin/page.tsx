@@ -4,9 +4,12 @@ import {
   RotateCcw,
   MessageSquare,
   Activity,
+  AlertTriangle,
 } from 'lucide-react';
+import Link from 'next/link';
 import {
   fetchAdminDashboardStats,
+  fetchApiUsageToday,
   type AdminAuditLog,
 } from '@/lib/admin/queries';
 import { HeroCard } from '@/components/shared/hero-card';
@@ -69,21 +72,40 @@ const recentActionsColumns: Column<AdminAuditLog>[] = [
 ];
 
 export default async function AdminOverviewPage() {
-  const stats = await fetchAdminDashboardStats().catch(() => ({
-    totalUsers: 0,
-    totalWords: 0,
-    totalReviews: 0,
-    openFeedback: 0,
-    activeUsers7d: 0,
-    usersPerDay: [],
-    wordsPerDay: [],
-    reviewsPerDay: [],
-    recentAuditLogs: [],
-  }));
+  const [stats, apiStats] = await Promise.all([
+    fetchAdminDashboardStats().catch(() => ({
+      totalUsers: 0,
+      totalWords: 0,
+      totalReviews: 0,
+      openFeedback: 0,
+      activeUsers7d: 0,
+      usersPerDay: [],
+      wordsPerDay: [],
+      reviewsPerDay: [],
+      recentAuditLogs: [],
+    })),
+    fetchApiUsageToday().catch(() => []),
+  ]);
+
+  const criticalServices = apiStats.filter((s) => s.status === 'critical');
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Admin Overview</h1>
+
+      {criticalServices.length > 0 && (
+        <Link
+          href="/admin/api-usage"
+          className="flex items-center gap-3 rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-3 text-sm text-red-700 dark:text-red-400 hover:bg-red-500/15 transition-colors"
+        >
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            <strong>API quota critical:</strong>{' '}
+            {criticalServices.map((s) => s.service).join(', ')} —{' '}
+            <span className="underline">View API Usage</span>
+          </span>
+        </Link>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">

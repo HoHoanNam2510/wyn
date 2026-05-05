@@ -36,6 +36,9 @@ export async function checkWritingSentence({
     };
   }
 
+  const { recordApiUsage } = await import('@/lib/admin/apiUsage');
+  void recordApiUsage('groq', session.user.id);
+
   const prompt = `You are an English writing coach. A learner wrote a sentence to practice the word "${term}" (${partOfSpeech}: ${meaning}).
 
 Their sentence: "${sentence}"

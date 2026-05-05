@@ -38,8 +38,8 @@ Plan này KHÔNG đề cập Phase C của PRODUCTION_PLAN (PWA, i18n, caching, 
 | **10** UI Polish & Bug Fixes    | ✅ Done    | 2026-05-01      | 5 fix: timeout, banner, table style, words cols, overview charts                              |
 | **11** UX & Code Quality Fixes  | ✅ Done    | 2026-05-01      | Admin settings page, table header bg, sidebar refactor, React Compiler warnings, CSS lint fix |
 | **12** Shared DataTable         | ✅ Done    | 2026-05-02      | `DataTable<T>` + migrate 6 tables (users/words/feedback/announcements/audit/overview)         |
-| **13** ApiUsage Tracking        | ⏳ Planned | —               | Foundation: `ApiUsageDaily` model + helper wrap 3 lib calls                                   |
-| **14** API Usage Page           | ⏳ Planned | —               | `/admin/api-usage` + critical banner trên Overview                                            |
+| **13** ApiUsage Tracking        | ✅ Done    | 2026-05-05      | `ApiUsageDaily` model + migration + `recordApiUsage` helper + wrap 3 lib calls                |
+| **14** API Usage Page           | ✅ Done    | 2026-05-05      | `/admin/api-usage` + `ApiSparkline` + `TopConsumersTabs` + critical banner                    |
 | **15** Reviews Mgmt Page        | ⏳ Planned | —               | `/admin/reviews` overview + per-user drill-down (vocab + grammar + idiom)                     |
 | **16** Polish                   | ⏳ Planned | —               | `updateAnnouncement` + 2 category stat cards trên Overview                                    |
 
@@ -644,7 +644,7 @@ model ApiUsageDaily {
 }
 ```
 
-- [ ] Migrate: `npx prisma migrate dev --name add_api_usage_daily`
+- [x] Migrate: `npx prisma migrate dev --name add_api_usage_daily`
 
 ### 13.2. Helper `lib/admin/apiUsage.ts`
 
@@ -664,9 +664,9 @@ export async function recordApiUsage(service: string, userId: string | null) {
 
 ### 13.3. Wrap 3 lib calls
 
-- [ ] [lib/dictionary.ts](lib/dictionary.ts) — gọi `recordApiUsage('dictionary', userId)` SAU rate-limit check, TRƯỚC `fetch()`. Dùng `void` (không await blocking).
-- [ ] [lib/unsplash.ts](lib/unsplash.ts) — `recordApiUsage('unsplash', userId)`
-- [ ] [lib/groq.ts](lib/groq.ts) hoặc [app/actions/writing.ts](app/actions/writing.ts) — `recordApiUsage('groq', userId)`
+- [x] [lib/dictionary.ts](lib/dictionary.ts) — gọi `recordApiUsage('dictionary', userId)` SAU rate-limit check, TRƯỚC `fetch()`. Dùng `void` (không await blocking).
+- [x] [lib/unsplash.ts](lib/unsplash.ts) — `recordApiUsage('unsplash', userId)`
+- [x] [app/actions/writing.ts](app/actions/writing.ts) — `recordApiUsage('groq', userId)` (dynamic import, sau auth check)
 
 **Tradeoff**: 1 DB upsert/API call. Cho beta scale 3-5 user × 100-200 calls/ngày = 300-1000 upserts/ngày → không đáng kể.
 
@@ -678,9 +678,9 @@ export async function recordApiUsage(service: string, userId: string | null) {
 
 ### 14.1. Queries trong `lib/admin/queries.ts`
 
-- [ ] `fetchApiUsageToday()` → từng service: `{ count, capDaily, percentOfCap, status: 'green'|'yellow'|'red'|'critical' }`
-- [ ] `fetchApiUsage30Days()` → time-series per service (dùng `fillDays`)
-- [ ] `fetchTopUsersByService(service, limit=10)` → top consumers hôm nay
+- [x] `fetchApiUsageToday()` → từng service: `{ count, capDaily, percentOfCap, status: 'green'|'yellow'|'red'|'critical' }`
+- [x] `fetchApiUsage30Days()` → time-series per service (dùng `fillDays`)
+- [x] `fetchTopApiConsumers(limit=10)` → top consumers hôm nay (fetch all services, client-side filter per tab)
 
 ### 14.2. Free-tier caps & threshold logic
 
@@ -700,15 +700,15 @@ Threshold:
 
 ### 14.3. UI
 
-- [ ] `app/(admin)/admin/api-usage/page.tsx` — server component
-- [ ] 4 service cards: today usage % + 30-day sparkline + suggested per-user limit
-- [ ] DataTable: top 10 consumers hôm nay (User | Service | Calls Today | % of Daily Cap)
-- [ ] Banner đỏ trên `/admin` nếu bất kỳ service ở trạng thái critical
-- [ ] Loading state
+- [x] `app/(admin)/admin/api-usage/page.tsx` — server component
+- [x] 3 service cards (dictionary, unsplash, groq): today usage % + progress bar + 30-day `ApiSparkline`
+- [x] `TopConsumersTabs`: tabbed per-service, top 30 global consumers filter client-side
+- [x] Banner đỏ trên `/admin` nếu bất kỳ service ở trạng thái critical
+- [x] Loading state (`loading.tsx`)
 
 ### 14.4. Sidebar
 
-- [ ] Thêm `{ href: '/admin/api-usage', label: 'API Usage', icon: Activity }` vào `admin-sidebar.tsx`
+- [x] Thêm `{ href: '/admin/api-usage', label: 'API Usage', icon: Activity }` vào `admin-sidebar.tsx`
 
 ---
 

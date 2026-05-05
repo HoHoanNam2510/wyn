@@ -253,3 +253,92 @@ export async function fetchAuditLogs(
   ]);
   return { logs, total };
 }
+
+// ── API Usage (Phase 14) ──────────────────────────────────────────────────────
+
+const DAILY_CAPS: Record<string, number> = {
+  dictionary: 0, // unlimited — display raw count only
+  unsplash: 1200, // 50 req/hr × 24h (free tier)
+  groq: 14400, // free tier daily limit
+};
+
+type ServiceStatus = 'green' | 'yellow' | 'red' | 'critical';
+
+function usageStatus(count: number, cap: number): ServiceStatus {
+  if (cap === 0) return 'green';
+  const pct = count / cap;
+  if (pct >= 0.95) return 'critical';
+  if (pct >= 0.8) return 'red';
+  if (pct >= 0.6) return 'yellow';
+  return 'green';
+}
+
+export type ApiServiceStat = {
+  service: string;
+  today: number;
+  capDaily: number;
+  percentOfCap: number;
+  status: ServiceStatus;
+};
+
+export async function fetchApiUsageToday(): Promise<ApiServiceStat[]> {
+  const rows = await db.$queryRaw<{ service: string; total: number }[]>`
+    SELECT service, SUM(count)::int AS total
+    FROM "ApiUsageDaily"
+    WHERE date = CURRENT_DATE
+    GROUP BY service
+  `;
+
+  const services = ['dictionary', 'unsplash', 'groq'] as const;
+  return services.map((service) => {
+    const today = Number(rows.find((r) => r.service === service)?.total ?? 0);
+    const cap = DAILY_CAPS[service] ?? 0;
+    return {
+      service,
+      today,
+      capDaily: cap,
+      percentOfCap: cap > 0 ? today / cap : 0,
+      status: usageStatus(today, cap),
+    };
+  });
+}
+
+export type ApiUsage30Days = Record<string, DayStat[]>;
+
+export async function fetchApiUsage30Days(): Promise<ApiUsage30Days> {
+  const rows = await db.$queryRaw<
+    { day: string; service: string; count: number }[]
+  >`
+    SELECT DATE(date)::text AS day, service, SUM(count)::int AS count
+    FROM "ApiUsageDaily"
+    WHERE date >= CURRENT_DATE - INTERVAL '29 days'
+    GROUP BY DATE(date), service
+    ORDER BY day
+  `;
+
+  const services = ['dictionary', 'unsplash', 'groq'] as const;
+  const result: ApiUsage30Days = {};
+  for (const service of services) {
+    result[service] = fillDays(rows.filter((r) => r.service === service));
+  }
+  return result;
+}
+
+export type ApiConsumer = {
+  userId: string | null;
+  email: string | null;
+  service: string;
+  count: number;
+};
+
+export async function fetchTopApiConsumers(limit = 10): Promise<ApiConsumer[]> {
+  return db.$queryRaw<ApiConsumer[]>`
+    SELECT a."userId", u.email, a.service, SUM(a.count)::int AS count
+    FROM "ApiUsageDaily" a
+    LEFT JOIN "User" u ON a."userId" = u.id
+    WHERE a.date = CURRENT_DATE
+    GROUP BY a."userId", u.email, a.service
+    ORDER BY count DESC
+    LIMIT ${limit}
+  `;
+}
